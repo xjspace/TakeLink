@@ -1,0 +1,33 @@
+{
+  "name": "lan-console",
+  "version": "1.0.0",
+  "description": "LAN CLAUDE - 局域网远程终端",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "lan-console": "./bin/lan-console.mjs"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "ansi-to-html": "^0.7.2",
+    "chalk": "^5.3.0",
+    "dotenv": "^17.3.1",
+    "express": "^4.21.0",
+    "node-pty": "^1.1.0",
+    "qrcode-terminal": "^0.12.0",
+    "socket.io": "^4.7.0",
+    "xterm": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.0.0",
+    "@types/qrcode-terminal": "^0.12.2",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  }
+}

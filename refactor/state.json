@@ -1,0 +1,12 @@
+{
+  "sessionId": "refactor_2026_02_26",
+  "projectPath": "G:/lan-happy",
+  "currentPhase": 1,
+  "completedTasks": ["1.1", "1.2"],
+  "lastAction": "修复终端尺寸同步 - PTY 80x24 + 前端 resize",
+  "nextAction": "测试完整流程",
+  "progress": {
+    "total": 9,
+    "completed": 2
+  }
+}
