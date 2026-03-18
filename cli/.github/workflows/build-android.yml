@@ -1,0 +1,123 @@
+name: Build Android APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Capacitor
+        run: |
+          pnpm add -D @capacitor/core @capacitor/cli @capacitor/android @capacitor/status-bar
+
+      - name: Initialize Capacitor
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+          npx cap sync android
+
+      - name: Configure transparent status bar
+        run: |
+          mkdir -p android/app/src/main/res/values
+          cat > android/app/src/main/res/values/styles.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+                  <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+                  <item name="android:statusBarColor">@android:color/transparent</item>
+                  <item name="android:navigationBarColor">@android:color/transparent</item>
+                  <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+              </style>
+          </resources>
+          EOF
+
+      # 动态创建 keystore（避免 Java 版本不兼容问题）
+      - name: Create keystore
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          cd android/app
+          keytool -genkeypair -v \
+            -alias "lan-claude" \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -keystore keystore.p12 \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEYSTORE_PASSWORD" \
+            -storetype PKCS12 \
+            -dname "CN=LANCLAUDE, OU=App, O=LANCLAUDE, L=Beijing, ST=Beijing, C=CN"
+
+      - name: Build Debug APK
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Build Release APK
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.storeFile=app/keystore.p12 \
+            -Pandroid.injected.signing.storePassword="$KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.keyAlias=lan-claude \
+            -Pandroid.injected.signing.keyPassword="$KEYSTORE_PASSWORD" \
+            --no-daemon
+
+      - name: Upload Debug APK
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lan-claude-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+
+      - name: Upload Release APK
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: lan-claude-release
+          path: android/app/build/outputs/apk/release/*.apk
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: android/app/build/outputs/apk/release/*.apk
+          generate_release_notes: true

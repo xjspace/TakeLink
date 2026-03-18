@@ -10,7 +10,12 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "cap:init": "cap init 'LAN CLAUDE' com.lanclaude.app --web-dir public",
+    "cap:add": "cap add android",
+    "cap:sync": "cap sync android",
+    "cap:build": "cap sync android && cap open android",
+    "android:build": "pnpm run cap:sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.11.0",
@@ -24,6 +29,10 @@
     "xterm": "^5.3.0"
   },
   "devDependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0",
     "@types/express": "^4.17.21",
     "@types/node": "^20.0.0",
     "@types/qrcode-terminal": "^0.12.2",

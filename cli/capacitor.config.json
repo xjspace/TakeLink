@@ -1,0 +1,23 @@
+{
+  "appId": "com.lanclaude.app",
+  "appName": "LAN CLAUDE",
+  "webDir": "public",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#0c0c0c",
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "StatusBar": {
+      "style": "Dark",
+      "backgroundColor": "#0c0c0c",
+      "overlaysWebView": true
+    },
+    "Keyboard": {
+      "resize": "body",
+      "resizeOnFullScreen": true
+    }
+  }
+}
