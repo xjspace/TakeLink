@@ -22,7 +22,7 @@ export default function ConnectScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
-        <Text style={styles.title}>🚀 LAN Happy</Text>
+        <Text style={styles.title}>🚀 TakeLink</Text>
         <Text style={styles.subtitle}>局域网远程控制 Claude Code</Text>
 
         <View style={styles.inputContainer}>
@@ -45,7 +45,7 @@ export default function ConnectScreen() {
 
         <View style={styles.hint}>
           <Text style={styles.hintText}>
-            1. 在电脑上运行 lan-happy cli{'\n'}
+            1. 在电脑上运行 TakeLink cli{'\n'}
             2. 扫描或输入显示的地址{'\n'}
             3. 开始远程控制
           </Text>

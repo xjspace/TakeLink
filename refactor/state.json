@@ -1,6 +1,6 @@
 {
   "sessionId": "refactor_2026_02_26",
-  "projectPath": "G:/lan-happy",
+  "projectPath": "G:/TakeLink",
   "currentPhase": 1,
   "completedTasks": ["1.1", "1.2"],
   "lastAction": "修复终端尺寸同步 - PTY 80x24 + 前端 resize",

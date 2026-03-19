@@ -34,6 +34,18 @@ export function ChatList({ messages }: Props) {
         listRef.current?.scrollToEnd({ animated: false });
       }}
       ListFooterComponent={<View style={styles.bottomPadding} />}
+      // 性能优化
+      removeClippedSubviews={true}
+      windowSize={5}
+      initialNumToRender={10}
+      maxToRenderPerBatch={5}
+      updateCellsBatchingPeriod={50}
+      // 滚动优化
+      showsVerticalScrollIndicator={false}
+      scrollEventThrottle={16}
+      // 键盘处理
+      keyboardDismissMode="interactive"
+      keyboardShouldPersistTaps="handled"
     />
   );
 }

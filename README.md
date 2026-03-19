@@ -1,4 +1,4 @@
-# LAN Happy - 局域网远程控制 Claude Code
+# TakeLink - 局域网远程控制 Claude Code
 
 > 手机端直接控制电脑上的 Claude Code，无需云端服务器，零延迟，完全私密。
 
@@ -25,13 +25,13 @@
 
 **Windows:**
 ```bash
-cd G:\lan-happy\cli
+cd G:\TakeLink\cli
 start.bat          # 双击运行，自动安装依赖并启动
 ```
 
 **Mac/Linux:**
 ```bash
-cd lan-happy/cli
+cd TakeLink/cli
 ./start.sh         # 自动安装依赖并启动
 ```
 
@@ -45,7 +45,7 @@ pnpm dev
 运行后会显示 QR 码：
 
 ```
-🚀 LAN Happy - 局域网远程控制 Claude Code
+🚀 TakeLink - 局域网远程控制 Claude Code
 ────────────────────────────────────────
 
 📱 手机扫描二维码连接:
@@ -86,7 +86,7 @@ pnpm start
 ## 项目结构
 
 ```
-lan-happy/
+TakeLink/
 ├── cli/                    # 电脑端
 │   ├── src/
 │   │   └── index.ts       # 主程序
@@ -139,7 +139,7 @@ CLAUDE_COMMAND=/path/to/script pnpm dev
 
 ## 对比 Happy Coder
 
-| 特性 | Happy Coder | LAN Happy |
+| 特性 | Happy Coder | TakeLink |
 |------|-------------|-----------|
 | 云端服务器 | 需要 | 不需要 |
 | 外网访问 | 支持 | 不支持（或内网穿透） |

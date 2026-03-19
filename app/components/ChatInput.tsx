@@ -1,9 +1,9 @@
 /**
  * 消息输入组件
- * 支持剪贴板粘贴、长按菜单（复制/全选/选取）
+ * 侧滑工具栏版本 - 从右侧边缘左滑显示纵向菜单
  */
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   TextInput,
@@ -12,10 +12,33 @@ import {
   StyleSheet,
   Keyboard,
   ActivityIndicator,
-  Modal,
   Pressable,
+  Dimensions,
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
 import * as Clipboard from 'expo-clipboard';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const SIDEBAR_WIDTH = 72; // 侧边栏宽度
+const EDGE_THRESHOLD = 30; // 边缘触发区域
+
+// 工具按钮配置（静态，避免每次渲染重新创建）
+const TOOL_BUTTONS_CONFIG = [
+  { icon: '↵', label: '发送', color: '#3b82f6' },
+  { icon: '+', label: '新建', color: '#22c55e' },
+  { icon: '⇥', label: 'Tab', color: '#6366f1' },
+  { icon: '␣', label: '空格', color: '#6366f1' },
+  { icon: '⎋', label: 'Esc', color: '#6366f1' },
+  { icon: '📋', label: '粘贴', color: '#8b5cf6' },
+  { icon: '📄', label: '复制', color: '#8b5cf6' },
+  { icon: '📝', label: '全选', color: '#8b5cf6' },
+] as const;
 
 interface Props {
   onSend: (text: string) => void;
@@ -31,29 +54,77 @@ interface Selection {
 export function ChatInput({ onSend, disabled, loading }: Props) {
   const [text, setText] = useState('');
   const [selection, setSelection] = useState<Selection>({ start: 0, end: 0 });
-  const [showMenu, setShowMenu] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const inputRef = useRef<TextInput>(null);
+
+  // 侧边栏动画状态
+  const sidebarX = useSharedValue(SIDEBAR_WIDTH);
+  const isOpen = useSharedValue(false);
+
+  // 关闭侧边栏（JS 线程版本，用于按钮点击）
+  const closeSidebarJS = useCallback(() => {
+    sidebarX.value = withSpring(SIDEBAR_WIDTH, { damping: 20, stiffness: 200 });
+    isOpen.value = false;
+  }, [sidebarX, isOpen]);
+
+  // 边缘滑动手势
+  const edgePanGesture = Gesture.Pan()
+    .activeOffsetX([-10, 10])
+    .onUpdate((e) => {
+      if (e.translationX < 0) {
+        // 左滑 - 打开
+        sidebarX.value = Math.max(0, SIDEBAR_WIDTH + e.translationX);
+      } else if (isOpen.value) {
+        // 右滑 - 关闭
+        sidebarX.value = Math.min(SIDEBAR_WIDTH, e.translationX);
+      }
+    })
+    .onEnd((e) => {
+      if (e.translationX < -30) {
+        // 左滑超过阈值，打开
+        sidebarX.value = withSpring(0, { damping: 20, stiffness: 200 });
+        isOpen.value = true;
+      } else if (e.translationX > 30) {
+        // 右滑超过阈值，关闭
+        sidebarX.value = withSpring(SIDEBAR_WIDTH, { damping: 20, stiffness: 200 });
+        isOpen.value = false;
+      } else {
+        // 回弹
+        if (isOpen.value) {
+          sidebarX.value = withSpring(0);
+        } else {
+          sidebarX.value = withSpring(SIDEBAR_WIDTH);
+        }
+      }
+    });
+
+  // 侧边栏动画样式
+  const sidebarStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: sidebarX.value }],
+  }));
+
+  // 遮罩层动画
+  const overlayStyle = useAnimatedStyle(() => ({
+    opacity: (1 - sidebarX.value / SIDEBAR_WIDTH) * 0.5,
+    pointerEvents: isOpen.value ? 'auto' : 'none',
+  }));
 
   // 粘贴剪贴板内容
   const handlePaste = useCallback(async () => {
     try {
       const clipboardText = await Clipboard.getStringAsync();
       if (clipboardText) {
-        // 在光标位置插入文本
         const before = text.substring(0, selection.start);
         const after = text.substring(selection.end);
         const newText = before + clipboardText + after;
         setText(newText);
-        // 更新光标位置
         const newCursor = selection.start + clipboardText.length;
         setSelection({ start: newCursor, end: newCursor });
       }
     } catch (err) {
       console.error('粘贴失败:', err);
     }
-    setShowMenu(false);
-  }, [text, selection]);
+    closeSidebarJS();
+  }, [text, selection, closeSidebarJS]);
 
   // 复制选中内容
   const handleCopy = useCallback(async () => {
@@ -61,153 +132,101 @@ export function ChatInput({ onSend, disabled, loading }: Props) {
       const selectedText = text.substring(selection.start, selection.end);
       await Clipboard.setStringAsync(selectedText);
     }
-    setShowMenu(false);
-  }, [text, selection]);
+    closeSidebarJS();
+  }, [text, selection, closeSidebarJS]);
 
   // 全选
   const handleSelectAll = useCallback(() => {
     setSelection({ start: 0, end: text.length });
-    setShowMenu(false);
     inputRef.current?.focus();
-  }, [text.length]);
+    closeSidebarJS();
+  }, [text.length, closeSidebarJS]);
 
   // 发送消息
-  const handleSend = () => {
+  const handleSend = useCallback(() => {
     const trimmed = text.trim();
     if (!trimmed || disabled || loading) return;
-
     onSend(trimmed);
     setText('');
     Keyboard.dismiss();
-  };
+  }, [text, disabled, loading, onSend]);
 
-  // 长按显示菜单
-  const handleLongPress = (event: any) => {
-    const { pageX, pageY } = event.nativeEvent;
-    setMenuPosition({ x: pageX, y: pageY });
-    setShowMenu(true);
-  };
+  // Tab 键
+  const handleTab = useCallback(() => {
+    if (disabled || loading) return;
+    const before = text.substring(0, selection.start);
+    const after = text.substring(selection.end);
+    const newText = before + '\t' + after;
+    setText(newText);
+    const newCursor = selection.start + 1;
+    setSelection({ start: newCursor, end: newCursor });
+    closeSidebarJS();
+  }, [text, selection, disabled, loading, closeSidebarJS]);
 
-  // 菜单项
-  const menuItems = [
-    { label: '粘贴', action: handlePaste, icon: '📋' },
-    { label: '复制', action: handleCopy, icon: '📄', disabled: selection.start === selection.end },
-    { label: '全选', action: handleSelectAll, icon: '📝', disabled: text.length === 0 },
-  ];
+  // 空格键
+  const handleSpace = useCallback(() => {
+    if (disabled || loading) return;
+    const before = text.substring(0, selection.start);
+    const after = text.substring(selection.end);
+    const newText = before + ' ' + after;
+    setText(newText);
+    const newCursor = selection.start + 1;
+    setSelection({ start: newCursor, end: newCursor });
+    closeSidebarJS();
+  }, [text, selection, disabled, loading, closeSidebarJS]);
 
-  // 工具栏按钮配置
-  const toolbarButtons = {
-    // A列：左对齐，固定大小（暂时空置）
-    left: [],
-    // C列：居中，固定大小
-    center: [
-      { label: 'ctrl', onPress: () => {}, icon: '⌃' },
-      { label: 'ctrl', onPress: () => {}, icon: '⌃' },
-      { label: 'ctrl', onPress: () => {}, icon: '⌃' },
-      { label: 'ctrl', onPress: () => {}, icon: '⌃' },
-    ],
-    // E列：右对齐，固定大小 - enter 用大按钮样式
-    right: [
-      { label: 'enter', onPress: handleSend, icon: '↵' },
-      { label: 'new', onPress: () => {}, icon: '+' },
-    ],
-    // B列：弹性，小按钮 - tab, space, esc
-    flexLeft: [
-      { label: 'tab', onPress: () => {}, icon: '⇥' },
-      { label: 'space', onPress: () => {}, icon: '␣' },
-      { label: 'esc', onPress: () => {}, icon: '⎋' },
-    ],
-    // D列：弹性，小按钮
-    flexRight: [
-      { label: '粘贴', onPress: handlePaste, icon: '📋' },
-      { label: '复制', onPress: handleCopy, icon: '📄' },
-      { label: '全选', onPress: handleSelectAll, icon: '📝' },
-      { label: '更多', onPress: () => {}, icon: '⋯' },
-    ],
-  };
+  // Esc 键 - 发送转义序列
+  const handleEsc = useCallback(() => {
+    if (disabled || loading) return;
+    // 发送 ESC 字符到终端
+    onSend('\x1b');
+    closeSidebarJS();
+  }, [disabled, loading, onSend, closeSidebarJS]);
+
+  // 工具按钮配置（使用 useMemo 优化）
+  const toolButtons = useMemo(() => {
+    const actions: Record<string, () => void> = {
+      '发送': handleSend,
+      '新建': () => {},
+      'Tab': handleTab,
+      '空格': handleSpace,
+      'Esc': handleEsc,
+      '粘贴': handlePaste,
+      '复制': handleCopy,
+      '全选': handleSelectAll,
+    };
+
+    const disabledStates: Record<string, boolean> = {
+      '复制': selection.start === selection.end,
+      '全选': text.length === 0,
+    };
+
+    return TOOL_BUTTONS_CONFIG.map(btn => ({
+      ...btn,
+      action: actions[btn.label] || (() => {}),
+      disabled: disabledStates[btn.label] || false,
+    }));
+  }, [handleSend, handleTab, handleSpace, handleEsc, handlePaste, handleCopy, handleSelectAll, selection.start, selection.end, text.length]);
 
   return (
     <View style={styles.container}>
-      {/* 工具栏 - 5列布局 */}
-      <View style={styles.toolbar}>
-        {/* A列：左对齐，固定大小 */}
-        <View style={styles.columnFixed}>
-          {toolbarButtons.left.map((btn) => (
-            <TouchableOpacity
-              key={btn.label}
-              style={styles.fixedButton}
-              onPress={btn.onPress}
-              disabled={disabled || loading}
-            >
-              <Text style={styles.fixedButtonIcon}>{btn.icon}</Text>
-              <Text style={styles.fixedButtonLabel}>{btn.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* B列：弹性 */}
-        <View style={styles.columnFlex}>
-          {toolbarButtons.flexLeft.map((btn) => (
-            <TouchableOpacity
-              key={btn.label}
-              style={styles.flexButton}
-              onPress={btn.onPress}
-              disabled={disabled || loading}
-            >
-              <Text style={styles.flexButtonIcon}>{btn.icon}</Text>
-              <Text style={styles.flexButtonLabel}>{btn.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* C列：居中，固定大小 */}
-        <View style={styles.columnFixed}>
-          {toolbarButtons.center.map((btn, index) => (
-            <TouchableOpacity
-              key={`ctrl-${index}`}
-              style={styles.fixedButton}
-              onPress={btn.onPress}
-              disabled={disabled || loading}
-            >
-              <Text style={styles.fixedButtonIcon}>{btn.icon}</Text>
-              <Text style={styles.fixedButtonLabel}>{btn.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* D列：弹性 */}
-        <View style={styles.columnFlex}>
-          {toolbarButtons.flexRight.map((btn) => (
-            <TouchableOpacity
-              key={btn.label}
-              style={styles.flexButton}
-              onPress={btn.onPress}
-              disabled={disabled || loading}
-            >
-              <Text style={styles.flexButtonIcon}>{btn.icon}</Text>
-              <Text style={styles.flexButtonLabel}>{btn.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* E列：右对齐，固定大小 */}
-        <View style={styles.columnFixed}>
-          {toolbarButtons.right.map((btn) => (
-            <TouchableOpacity
-              key={btn.label}
-              style={styles.fixedButton}
-              onPress={btn.onPress}
-              disabled={disabled || loading}
-            >
-              <Text style={styles.fixedButtonIcon}>{btn.icon}</Text>
-              <Text style={styles.fixedButtonLabel}>{btn.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+      {/* 遮罩层 */}
+      <Animated.View style={[styles.overlay, overlayStyle]}>
+        <Pressable style={styles.overlayPressable} onPress={closeSidebarJS} />
+      </Animated.View>
 
       {/* 输入区域 */}
       <View style={styles.inputRow}>
+        {/* 触发区域 - 右边缘 */}
+        <GestureDetector gesture={edgePanGesture}>
+          <View style={styles.edgeTrigger}>
+            <View style={styles.edgeIndicator}>
+              <View style={styles.edgeBar} />
+            </View>
+          </View>
+        </GestureDetector>
+
+        {/* 输入框 */}
         <TextInput
           ref={inputRef}
           style={styles.input}
@@ -224,6 +243,8 @@ export function ChatInput({ onSend, disabled, loading }: Props) {
           editable={!disabled && !loading}
           selection={selection}
         />
+
+        {/* 快捷发送按钮 */}
         <TouchableOpacity
           style={[
             styles.sendButton,
@@ -235,45 +256,33 @@ export function ChatInput({ onSend, disabled, loading }: Props) {
           {loading ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.sendButtonText}>发送</Text>
+            <Text style={styles.sendButtonText}>↵</Text>
           )}
         </TouchableOpacity>
       </View>
 
-      {/* 长按菜单 */}
-      <Modal
-        visible={showMenu}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowMenu(false)}
-      >
-        <Pressable style={styles.menuOverlay} onPress={() => setShowMenu(false)}>
-          <View
+      {/* 侧滑工具栏 */}
+      <Animated.View style={[styles.sidebar, sidebarStyle]}>
+        {toolButtons.map((btn, index) => (
+          <TouchableOpacity
+            key={btn.label}
             style={[
-              styles.menuContainer,
-              { left: menuPosition.x - 80, top: menuPosition.y - 120 },
+              styles.toolButton,
+              { backgroundColor: btn.disabled ? '#1a1a2e' : btn.color + '20' },
+              index === 0 && styles.toolButtonFirst,
             ]}
+            onPress={btn.action}
+            disabled={btn.disabled || disabled || loading}
           >
-            {menuItems.map((item, index) => (
-              <TouchableOpacity
-                key={item.label}
-                style={[
-                  styles.menuItem,
-                  item.disabled && styles.menuItemDisabled,
-                  index === menuItems.length - 1 && styles.menuItemLast,
-                ]}
-                onPress={item.action}
-                disabled={item.disabled}
-              >
-                <Text style={styles.menuIcon}>{item.icon}</Text>
-                <Text style={[styles.menuLabel, item.disabled && styles.menuLabelDisabled]}>
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Pressable>
-      </Modal>
+            <Text style={[styles.toolIcon, btn.disabled && styles.toolIconDisabled]}>
+              {btn.icon}
+            </Text>
+            <Text style={[styles.toolLabel, btn.disabled && styles.toolLabelDisabled]}>
+              {btn.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </Animated.View>
     </View>
   );
 }
@@ -284,63 +293,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#252540',
   },
-  toolbar: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    gap: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#252540',
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000',
+    zIndex: 5,
   },
-  // 固定宽度列（A、C、E列）
-  columnFixed: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-  },
-  // 弹性列（B、D列）
-  columnFlex: {
+  overlayPressable: {
     flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  // 固定大小按钮（和发送按钮一样大）
-  fixedButton: {
-    backgroundColor: '#252540',
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 60,
-  },
-  fixedButtonIcon: {
-    fontSize: 14,
-    marginBottom: 2,
-  },
-  fixedButtonLabel: {
-    color: '#888',
-    fontSize: 10,
-  },
-  // 弹性按钮（较小）
-  flexButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: '#252540',
-    borderRadius: 16,
-    gap: 4,
-  },
-  flexButtonIcon: {
-    fontSize: 12,
-  },
-  flexButtonLabel: {
-    color: '#888',
-    fontSize: 11,
   },
   inputRow: {
     flexDirection: 'row',
@@ -348,6 +307,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     gap: 10,
     alignItems: 'flex-end',
+    position: 'relative',
+  },
+  edgeTrigger: {
+    position: 'absolute',
+    right: 0,
+    top: -100,
+    bottom: 0,
+    width: EDGE_THRESHOLD,
+    zIndex: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  edgeIndicator: {
+    width: 6,
+    height: 50,
+    backgroundColor: '#3b82f6',
+    borderRadius: 3,
+    opacity: 0.6,
+  },
+  edgeBar: {
+    width: 4,
+    height: 40,
+    backgroundColor: '#3b82f6',
+    borderRadius: 2,
   },
   input: {
     flex: 1,
@@ -364,9 +347,8 @@ const styles = StyleSheet.create({
   sendButton: {
     backgroundColor: '#3b82f6',
     borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    minWidth: 60,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -375,48 +357,45 @@ const styles = StyleSheet.create({
   },
   sendButtonText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: 20,
     fontWeight: '600',
   },
-  menuOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  menuContainer: {
+  sidebar: {
     position: 'absolute',
-    backgroundColor: '#2a2a4a',
-    borderRadius: 12,
-    paddingVertical: 4,
-    minWidth: 160,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    right: 0,
+    bottom: '100%',
+    width: SIDEBAR_WIDTH,
+    backgroundColor: '#1e1e2e',
+    borderBottomLeftRadius: 16,
+    borderTopLeftRadius: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#252540',
+    borderRightWidth: 0,
+    zIndex: 10,
+    maxHeight: 360,
   },
-  menuItem: {
-    flexDirection: 'row',
+  toolButton: {
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#3a3a5a',
+    paddingVertical: 10,
+    marginHorizontal: 4,
+    borderRadius: 8,
   },
-  menuItemLast: {
-    borderBottomWidth: 0,
+  toolButtonFirst: {
+    backgroundColor: '#3b82f6',
   },
-  menuItemDisabled: {
+  toolIcon: {
+    fontSize: 18,
+    marginBottom: 2,
+  },
+  toolIconDisabled: {
     opacity: 0.4,
   },
-  menuIcon: {
-    fontSize: 16,
+  toolLabel: {
+    color: '#888',
+    fontSize: 10,
   },
-  menuLabel: {
-    color: '#fff',
-    fontSize: 15,
-  },
-  menuLabelDisabled: {
-    color: '#666',
+  toolLabelDisabled: {
+    color: '#444',
   },
 });

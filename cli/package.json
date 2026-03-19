@@ -1,17 +1,17 @@
 {
-  "name": "lan-console",
+  "name": "takelink",
   "version": "1.0.0",
-  "description": "LAN CLAUDE - 局域网远程终端",
+  "description": "TakeLink - 局域网远程终端，随时随地接管你的终端",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "lan-console": "./bin/lan-console.mjs"
+    "takelink": "./bin/takelink.mjs"
   },
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "cap:init": "cap init 'LAN CLAUDE' com.lanclaude.app --web-dir public",
+    "cap:init": "cap init 'TakeLink' com.takelink.app --web-dir public",
     "cap:add": "cap add android",
     "cap:sync": "cap sync android",
     "cap:build": "cap sync android && cap open android",

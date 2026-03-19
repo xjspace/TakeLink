@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#0c0c0c">
-  <title>LAN CLAUDE</title>
+  <title>TakeLink</title>
   <link rel="stylesheet" href="/node_modules/xterm/css/xterm.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -374,7 +374,7 @@
   <!-- 登录页面 -->
   <div id="login-page" class="login-container hidden">
     <div class="login-box">
-      <div class="login-title">LAN CLAUDE</div>
+      <div class="login-title">TakeLink</div>
       <div class="login-subtitle">请输入访问密码</div>
       <input type="password" id="password-input" class="login-input" placeholder="密码" autocomplete="off">
       <button id="login-btn" class="login-btn">登录</button>
@@ -529,7 +529,7 @@
           isAuthenticated = true;
           // 存储 token
           if (result.token) {
-            localStorage.setItem('lan-console-token', result.token);
+            localStorage.setItem('takelink-token', result.token);
           }
           $('login-page').classList.add('hidden');
           $('password-input').value = '';
@@ -1143,7 +1143,7 @@
       socket.on('auth-required', (data) => {
         if (data.required) {
           // 尝试使用存储的 token 认证
-          const savedToken = localStorage.getItem('lan-console-token');
+          const savedToken = localStorage.getItem('takelink-token');
           if (savedToken) {
             socket.emit('auth-token', savedToken, (result) => {
               if (result.success) {
@@ -1152,7 +1152,7 @@
                 showPage($('list-page'));
               } else {
                 // token 失效，清除并显示登录
-                localStorage.removeItem('lan-console-token');
+                localStorage.removeItem('takelink-token');
                 showLogin();
               }
             });

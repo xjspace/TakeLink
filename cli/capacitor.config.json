@@ -1,6 +1,6 @@
 {
-  "appId": "com.lanclaude.app",
-  "appName": "LAN CLAUDE",
+  "appId": "com.takelink.app",
+  "appName": "TakeLink",
   "webDir": "public",
   "server": {
     "androidScheme": "https"
