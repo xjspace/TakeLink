@@ -49,6 +49,12 @@ jobs:
         working-directory: ./cli
         run: npx cap sync android
 
+      - name: Remove proxy settings for CI
+        working-directory: ./cli/android
+        run: |
+          sed -i '/systemProp.http.proxy/d' gradle.properties
+          sed -i '/systemProp.https.proxy/d' gradle.properties
+
       - name: Build Debug APK
         working-directory: ./cli/android
         run: chmod +x gradlew && ./gradlew assembleDebug
