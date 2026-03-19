@@ -165,6 +165,112 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* 连接页面 (Capacitor App) */
+    .connect-container {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #0c0c0c;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 60px 20px 20px;
+      overflow-y: auto;
+    }
+    .connect-container.hidden { display: none; }
+    .connect-box {
+      width: 100%;
+      max-width: 320px;
+    }
+    .connect-title {
+      font-size: 28px;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .connect-subtitle {
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .connect-label {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+    .connect-input-row {
+      display: flex;
+      align-items: center;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 0 12px;
+      margin-bottom: 20px;
+    }
+    .connect-prefix {
+      color: #666;
+      font-size: 14px;
+    }
+    .connect-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 14px;
+      padding: 14px 8px;
+      outline: none;
+    }
+    .connect-colon {
+      color: #666;
+      font-size: 14px;
+    }
+    .connect-port {
+      width: 60px;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 14px;
+      padding: 14px 8px;
+      text-align: center;
+      outline: none;
+    }
+    .connect-btn {
+      width: 100%;
+      background: #3b82f6;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 14px;
+      cursor: pointer;
+      margin-bottom: 16px;
+    }
+    .connect-btn:active { background: #2563eb; }
+    .connect-error {
+      color: #e74856;
+      font-size: 12px;
+      text-align: center;
+      margin-bottom: 16px;
+      min-height: 16px;
+    }
+    .connect-hint {
+      background: #1a1a1a;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .connect-hint-title {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+    .connect-hint-text {
+      font-size: 12px;
+      color: #666;
+      line-height: 1.8;
+    }
+
     /* 登录页面 */
     .login-container {
       position: fixed;
@@ -375,6 +481,31 @@
     <div>连接中...</div>
   </div>
 
+  <!-- 连接页面 (Capacitor App) -->
+  <div id="connect-page" class="connect-container hidden">
+    <div class="connect-box">
+      <div class="connect-title">🚀 TakeLink</div>
+      <div class="connect-subtitle">局域网远程终端</div>
+      <div class="connect-label">服务器地址</div>
+      <div class="connect-input-row">
+        <span class="connect-prefix">http://</span>
+        <input type="text" id="server-ip" class="connect-input" placeholder="192.168.1.100" value="">
+        <span class="connect-colon">:</span>
+        <input type="text" id="server-port" class="connect-port" placeholder="8080" value="8080">
+      </div>
+      <button id="connect-btn" class="connect-btn">连接</button>
+      <div id="connect-error" class="connect-error"></div>
+      <div class="connect-hint">
+        <div class="connect-hint-title">使用步骤</div>
+        <div class="connect-hint-text">
+          1. 电脑上运行 TakeLink CLI<br>
+          2. 查看显示的 IP 地址<br>
+          3. 在上方输入地址并连接
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 登录页面 -->
   <div id="login-page" class="login-container hidden">
     <div class="login-box">
@@ -455,7 +586,7 @@
     <div class="context-menu-item" data-action="copyall"><span class="icon">📑</span>复制全部</div>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="socket.io.min.js"></script>
   <script src="/node_modules/xterm/lib/xterm.js"></script>
   <script src="/node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
   <script>
@@ -506,6 +637,7 @@
       page.classList.add('active');
       $('connecting').style.display = 'none';
       $('login-page').classList.add('hidden');
+      $('connect-page').classList.add('hidden');
 
       // 切换到终端页面时调整终端尺寸
       if (page.id === 'terminal-page' && term && fitAddon) {
@@ -518,6 +650,7 @@
     // 显示登录页
     function showLogin() {
       $('connecting').style.display = 'none';
+      $('connect-page').classList.add('hidden');
       $('login-page').classList.remove('hidden');
       $('password-input').focus();
     }
@@ -1129,8 +1262,74 @@
         return;
       }
 
+      // 检测是否在 Capacitor/Android 环境中
+      const isCapacitor = window.Capacitor ||
+                          window.location.protocol === 'file:' ||
+                          window.location.hostname === 'localhost' && window.location.port === '';
+
+      if (isCapacitor) {
+        // Capacitor 环境：显示连接页面
+        $('connecting').style.display = 'none';
+        $('connect-page').classList.remove('hidden');
+
+        // 连接按钮事件
+        $('connect-btn').onclick = connectToServer;
+        $('server-ip').onkeydown = (e) => { if (e.key === 'Enter') connectToServer(); };
+        $('server-port').onkeydown = (e) => { if (e.key === 'Enter') connectToServer(); };
+
+        // 加载历史地址
+        const savedUrl = localStorage.getItem('takelink-server');
+        if (savedUrl) {
+          try {
+            const url = new URL(savedUrl);
+            $('server-ip').value = url.hostname;
+            $('server-port').value = url.port || '8080';
+          } catch(e) {}
+        }
+      } else {
+        // 浏览器环境：直接连接
+        connectSocket();
+      }
+    }
+
+    // 连接到指定服务器 (Capacitor)
+    function connectToServer() {
+      const ip = $('server-ip').value.trim();
+      const port = $('server-port').value.trim() || '8080';
+
+      if (!ip) {
+        $('connect-error').textContent = '请输入服务器地址';
+        return;
+      }
+
+      const serverUrl = `http://${ip}:${port}`;
+      $('connect-error').textContent = '';
+      $('connect-btn').textContent = '连接中...';
+      $('connect-btn').disabled = true;
+
+      // 保存地址
+      localStorage.setItem('takelink-server', serverUrl);
+
       // 连接服务器
-      socket = io({ transports: ['websocket', 'polling'] });
+      try {
+        connectSocket(serverUrl);
+      } catch(e) {
+        $('connect-error').textContent = '连接失败: ' + e.message;
+        $('connect-btn').textContent = '连接';
+        $('connect-btn').disabled = false;
+      }
+    }
+
+    // 建立 Socket 连接
+    function connectSocket(serverUrl) {
+      const socketOptions = {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+      };
+
+      socket = io(serverUrl, socketOptions);
 
       // Socket 事件
       socket.on('connect', () => {
@@ -1178,7 +1377,14 @@
       });
 
       socket.on('connect_error', (err) => {
-        $('connecting').innerHTML = '<div style="color:#e74856">连接失败: ' + err.message + '</div>';
+        // 检查是否在连接页面
+        if (!$('connect-page').classList.contains('hidden')) {
+          $('connect-error').textContent = '连接失败: ' + err.message;
+          $('connect-btn').textContent = '连接';
+          $('connect-btn').disabled = false;
+        } else {
+          $('connecting').innerHTML = '<div style="color:#e74856">连接失败: ' + err.message + '</div>';
+        }
       });
 
       socket.on('processes-list', (list) => {
