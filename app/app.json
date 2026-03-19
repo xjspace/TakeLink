@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "LAN CLAUDE",
-    "slug": "lan-Claude-app",
+    "name": "TakeLink",
+    "slug": "takelink",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "lan-claude",
+    "scheme": "takelink",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
@@ -13,20 +13,34 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.claude.app"
+      "bundleIdentifier": "com.takelink.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "TakeLink 需要访问相机来扫描服务器二维码"
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#1a1a2e"
+        "backgroundColor": "#1a1a2e",
+        "foregroundImage": "./assets/adaptive-icon.png"
       },
-      "package": "com.lanclaude.app"
+      "package": "com.takelink.app",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "bundler": "metro",
       "output": "static"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "TakeLink 需要访问相机来扫描服务器二维码"
+        }
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
