@@ -52,7 +52,7 @@ export default function ConnectScreen() {
     }
   };
 
-  const saveToHistory = async (url: string) => {
+  const saveToHistory = useCallback(async (url: string) => {
     try {
       const newHistory: HistoryItem[] = [
         { url, lastUsed: Date.now() },
@@ -63,7 +63,7 @@ export default function ConnectScreen() {
     } catch (e) {
       console.error('保存历史失败:', e);
     }
-  };
+  }, [history]);
 
   const handleConnect = async (url?: string) => {
     const connectUrl = url || `http://${serverIp}:${port}`;
@@ -101,13 +101,15 @@ export default function ConnectScreen() {
       url = data.replace(/\/app$/, '');
     }
 
-    // 验证 URL 格式
+    // 验证 URL 格式并直接连接
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      handleConnect(url);
+      // 直接导航到会话页面（自动连接）
+      saveToHistory(url);
+      router.push(`/session?url=${encodeURIComponent(url)}`);
     } else {
       Alert.alert('无效二维码', '请扫描 TakeLink 显示的二维码');
     }
-  }, []);
+  }, [saveToHistory]);
 
   const handleHistoryPress = (url: string) => {
     // 解析 URL 填充输入框
