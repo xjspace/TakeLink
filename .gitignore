@@ -7,8 +7,8 @@ dist/
 !.env.example
 
 # Capacitor
-android/
-ios/
+/android/
+/ios/
 .capacitor/
 
 # Build outputs
