@@ -556,8 +556,10 @@
         const tab = document.createElement('div');
         tab.className = 'tab-item' + (p.id === currentId ? ' active' : '');
         tab.dataset.id = p.id;
+        // 显示路径，title 显示完整路径
+        const displayPath = p.cwd || p.projectName;
         tab.innerHTML = `
-          <span class="tab-name">${p.projectName}</span>
+          <span class="tab-name" title="${displayPath}">${displayPath}</span>
           <span class="tab-close" data-id="${p.id}">×</span>
         `;
         tabsContainer.insertBefore(tab, addBtn);
