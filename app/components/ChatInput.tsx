@@ -25,7 +25,7 @@ import Animated, {
 import * as Clipboard from 'expo-clipboard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SIDEBAR_WIDTH = 72; // 侧边栏宽度
+const SIDEBAR_WIDTH = 140; // 侧边栏宽度
 const EDGE_THRESHOLD = 30; // 边缘触发区域
 
 // 工具按钮配置（静态，避免每次渲染重新创建）
@@ -369,15 +369,17 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 16,
     borderTopLeftRadius: 16,
     paddingVertical: 8,
+    paddingHorizontal: 6,
     borderWidth: 1,
     borderColor: '#252540',
     borderRightWidth: 0,
     zIndex: 10,
-    maxHeight: 360,
+    maxHeight: 480,
   },
   toolButton: {
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     marginHorizontal: 4,
     borderRadius: 8,
   },
@@ -385,15 +387,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#3b82f6',
   },
   toolIcon: {
-    fontSize: 18,
-    marginBottom: 2,
+    fontSize: 22,
+    marginBottom: 4,
   },
   toolIconDisabled: {
     opacity: 0.4,
   },
   toolLabel: {
     color: '#888',
-    fontSize: 10,
+    fontSize: 12,
   },
   toolLabelDisabled: {
     color: '#444',
