@@ -6,6 +6,9 @@ dist/
 .env
 !.env.example
 
+# Claude Code local files
+.claude/
+
 # Capacitor
 /android/
 /ios/

@@ -317,6 +317,32 @@
       min-height: 16px;
     }
 
+    /* 语言切换按钮 */
+    .lang-switch {
+      position: absolute;
+      top: env(safe-area-inset-top, 16px);
+      right: 16px;
+      display: flex;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      overflow: hidden;
+      z-index: 10;
+    }
+    .lang-btn {
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #9ca3af;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .lang-btn.active {
+      background: #3b82f6;
+      color: #fff;
+    }
+
     /* README 区域 */
     .readme-section {
       width: 100%;
@@ -711,13 +737,19 @@
 
   <!-- 连接页面 (Capacitor App) - 扫码模式 -->
   <div id="connect-page" class="connect-container hidden">
+    <!-- 语言切换 -->
+    <div class="lang-switch">
+      <button class="lang-btn active" data-lang="en">EN</button>
+      <button class="lang-btn" data-lang="zh">中文</button>
+    </div>
+
     <!-- Logo -->
     <div class="connect-logo">
       <div class="connect-logo-icon">
         <span>🚀</span>
       </div>
       <div class="connect-title">TakeLink</div>
-      <div class="connect-subtitle">局域网远程终端</div>
+      <div class="connect-subtitle" data-i18n="subtitle">LAN Remote Terminal</div>
     </div>
 
     <!-- 扫码按钮 -->
@@ -725,13 +757,13 @@
       <div class="scan-btn-icon">
         <span>📷</span>
       </div>
-      <div class="scan-btn-title">扫描二维码连接</div>
-      <div class="scan-btn-hint">点击开始扫描</div>
+      <div class="scan-btn-title" data-i18n="scanTitle">Scan QR Code to Connect</div>
+      <div class="scan-btn-hint" data-i18n="scanHint">Tap to start scanning</div>
     </button>
 
     <!-- 历史记录 -->
     <div id="history-section" class="history-section" style="display:none;">
-      <div class="history-title">最近连接</div>
+      <div class="history-title" data-i18n="recentConnections">Recent Connections</div>
       <div id="history-list"></div>
     </div>
 
@@ -741,10 +773,6 @@
     <div class="readme-section">
       <div class="readme-header">
         <span class="readme-title">README</span>
-        <div class="readme-lang-toggle">
-          <button class="readme-lang-btn active" data-lang="en">EN</button>
-          <button class="readme-lang-btn" data-lang="zh">中文</button>
-        </div>
       </div>
       <!-- English Content -->
       <div class="readme-content active" id="readme-en">
@@ -786,9 +814,9 @@
 
     <!-- 底部提示 -->
     <div class="connect-footer">
-      <div class="connect-footer-text">
-        在电脑上运行 TakeLink CLI<br>
-        扫描屏幕上的二维码即可连接
+      <div class="connect-footer-text" data-i18n="footerHint">
+        Run TakeLink CLI on your computer<br>
+        Scan the QR code to connect
       </div>
     </div>
   </div>
@@ -799,7 +827,7 @@
     <div class="scanner-overlay">
       <div class="scanner-header">
         <button id="scanner-close" class="scanner-close">✕</button>
-        <span class="scanner-title">扫描连接</span>
+        <span class="scanner-title" data-i18n="scannerTitle">Scan to Connect</span>
         <div class="scanner-placeholder"></div>
       </div>
       <div class="scanner-frame">
@@ -809,9 +837,9 @@
         <div class="scanner-corner br"></div>
         <div class="scanner-line"></div>
       </div>
-      <div class="scanner-hint">将二维码放入框内自动扫描</div>
+      <div class="scanner-hint" data-i18n="scannerHint">Position QR code within the frame</div>
       <div class="scanner-footer">
-        <div class="scanner-footer-text">扫描 TakeLink CLI 显示的二维码</div>
+        <div class="scanner-footer-text" data-i18n="scannerFooter">Scan the QR code displayed by TakeLink CLI</div>
       </div>
     </div>
   </div>
@@ -1586,15 +1614,56 @@
         $('scan-btn').onclick = startScanner;
         $('scanner-close').onclick = stopScanner;
 
-        // README 语言切换
-        document.querySelectorAll('.readme-lang-btn').forEach(btn => {
-          btn.onclick = () => {
-            const lang = btn.dataset.lang;
-            document.querySelectorAll('.readme-lang-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            document.querySelectorAll('.readme-content').forEach(c => c.classList.remove('active'));
-            $('readme-' + lang).classList.add('active');
-          };
+        // 全局语言切换
+        const i18n = {
+          en: {
+            subtitle: 'LAN Remote Terminal',
+            scanTitle: 'Scan QR Code to Connect',
+            scanHint: 'Tap to start scanning',
+            historyTitle: 'Recent Connections',
+            footerHint: 'Run TakeLink CLI on your computer<br>Scan the QR code to connect',
+            scannerTitle: 'Scan to Connect',
+            scannerHint: 'Position QR code within the frame',
+            scannerFooter: 'Scan the QR code displayed by TakeLink CLI',
+            connecting: 'Connecting...'
+          },
+          zh: {
+            subtitle: '局域网远程终端',
+            scanTitle: '扫描二维码连接',
+            scanHint: '点击开始扫描',
+            historyTitle: '最近连接',
+            footerHint: '在电脑上运行 TakeLink CLI<br>扫描屏幕上的二维码即可连接',
+            scannerTitle: '扫描连接',
+            scannerHint: '将二维码放入框内自动扫描',
+            scannerFooter: '扫描 TakeLink CLI 显示的二维码',
+            connecting: '连接中...'
+          }
+        };
+
+        let currentLang = 'en';
+
+        function setLanguage(lang) {
+          currentLang = lang;
+          // 更新按钮状态
+          document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+          document.querySelector('.lang-btn[data-lang="' + lang + '"]').classList.add('active');
+          document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+          document.querySelector('.lang-btn[data-lang="' + lang + '"]').classList.add('active');
+          // 更新 README 内容
+          document.querySelectorAll('.readme-content').forEach(c => c.classList.remove('active'));
+          $('readme-' + lang).classList.add('active');
+          // 更新所有 data-i18n 元素
+          document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.dataset.i18n;
+            if (i18n[lang] && i18n[lang][key]) {
+              el.innerHTML = i18n[lang][key];
+            }
+          });
+        }
+
+        // 语言切换按钮事件
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+          btn.onclick = () => setLanguage(btn.dataset.lang);
         });
 
         // 加载历史记录
