@@ -564,12 +564,17 @@ async function main() {
     cors: {
       origin: (origin, callback) => {
         // 允许无 origin 的请求（如原生应用）和局域网/本地请求
+        // Capacitor: file://, https://localhost, capacitor://localhost
         if (!origin ||
             origin.startsWith('http://192.168.') ||
             origin.startsWith('http://10.') ||
             origin.startsWith('http://172.') ||
             origin.startsWith('http://127.0.0.1') ||
             origin.startsWith('http://localhost') ||
+            origin.startsWith('https://localhost') ||
+            origin.startsWith('capacitor://') ||
+            origin.startsWith('ionic://') ||
+            origin.startsWith('file://') ||
             origin.startsWith('http://[::1]') ||
             origin.startsWith('http://[2')) { // IPv6
           callback(null, true);
