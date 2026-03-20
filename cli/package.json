@@ -1,6 +1,6 @@
 {
   "name": "takelink",
-  "version": "1.1.0",
+  "version": "1.1.4",
   "description": "TakeLink - 局域网远程终端，随时随地接管你的终端",
   "type": "module",
   "main": "dist/index.js",
