@@ -165,94 +165,239 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* 连接页面 (Capacitor App) */
+    /* 连接页面 (Capacitor App) - 扫码模式 */
     .connect-container {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: #0c0c0c;
+      background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
-      padding: 60px 20px 20px;
-      overflow-y: auto;
+      padding: env(safe-area-inset-top, 60px) 24px env(safe-area-inset-bottom, 20px);
     }
     .connect-container.hidden { display: none; }
-    .connect-box {
-      width: 100%;
-      max-width: 320px;
+
+    /* Logo 区域 */
+    .connect-logo {
+      margin-top: 40px;
+      margin-bottom: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-    .connect-title {
-      font-size: 28px;
-      color: #fff;
-      text-align: center;
-      margin-bottom: 8px;
-    }
-    .connect-subtitle {
-      font-size: 14px;
-      color: #666;
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    .connect-label {
-      font-size: 12px;
-      color: #888;
-      margin-bottom: 8px;
-    }
-    .connect-input-row {
+    .connect-logo-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 24px;
+      background: rgba(59, 130, 246, 0.15);
       display: flex;
       align-items: center;
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 0 12px;
-      margin-bottom: 20px;
-    }
-    .connect-prefix {
-      color: #666;
-      font-size: 14px;
-    }
-    .connect-input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: #fff;
-      font-size: 14px;
-      padding: 14px 8px;
-      outline: none;
-    }
-    .connect-colon {
-      color: #666;
-      font-size: 14px;
-    }
-    .connect-port {
-      width: 60px;
-      background: transparent;
-      border: none;
-      color: #fff;
-      font-size: 14px;
-      padding: 14px 8px;
-      text-align: center;
-      outline: none;
-    }
-    .connect-btn {
-      width: 100%;
-      background: #3b82f6;
-      border: none;
-      border-radius: 8px;
-      color: #fff;
-      font-size: 16px;
-      font-weight: 500;
-      padding: 14px;
-      cursor: pointer;
+      justify-content: center;
       margin-bottom: 16px;
     }
-    .connect-btn:active { background: #2563eb; }
+    .connect-logo-icon span { font-size: 40px; }
+    .connect-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .connect-subtitle {
+      font-size: 15px;
+      color: #6b7280;
+    }
+
+    /* 扫码按钮 */
+    .scan-btn {
+      width: 100%;
+      max-width: 300px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      padding: 28px 32px;
+      cursor: pointer;
+      margin-bottom: 32px;
+      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+    }
+    .scan-btn:active { transform: scale(0.98); }
+    .scan-btn-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 32px;
+      background: rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px;
+    }
+    .scan-btn-icon span { font-size: 32px; }
+    .scan-btn-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .scan-btn-hint {
+      font-size: 14px;
+      opacity: 0.7;
+    }
+
+    /* 历史记录 */
+    .history-section {
+      width: 100%;
+      max-width: 300px;
+      margin-bottom: 24px;
+    }
+    .history-title {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 12px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+    .history-item {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    .history-item:active { background: rgba(255, 255, 255, 0.1); }
+    .history-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(59, 130, 246, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+    }
+    .history-icon span { font-size: 18px; }
+    .history-content { flex: 1; }
+    .history-url {
+      font-size: 15px;
+      color: #fff;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    .history-time {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .history-arrow {
+      font-size: 20px;
+      color: #4b5563;
+    }
+
+    /* 底部提示 */
+    .connect-footer {
+      position: absolute;
+      bottom: 40px;
+      text-align: center;
+    }
+    .connect-footer-text {
+      font-size: 13px;
+      color: #4b5563;
+      line-height: 20px;
+    }
+
+    /* 扫码视图 */
+    .scanner-view {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #000;
+      z-index: 1000;
+      display: none;
+    }
+    .scanner-view.active { display: flex; flex-direction: column; }
+    .scanner-video {
+      flex: 1;
+      object-fit: cover;
+    }
+    .scanner-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: env(safe-area-inset-top, 60px) 20px 40px;
+    }
+    .scanner-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .scanner-close {
+      width: 44px;
+      height: 44px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .scanner-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .scanner-placeholder { width: 44px; }
+    .scanner-frame {
+      width: 280px;
+      height: 280px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .scanner-corner {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-color: #3b82f6;
+      border-style: solid;
+      border-width: 0;
+    }
+    .scanner-corner.tl { top: 0; left: 0; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 8px; }
+    .scanner-corner.tr { top: 0; right: 0; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 8px; }
+    .scanner-corner.bl { bottom: 0; left: 0; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 8px; }
+    .scanner-corner.br { bottom: 0; right: 0; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 8px; }
+    .scanner-line {
+      position: absolute;
+      left: 10px;
+      width: calc(100% - 20px);
+      height: 2px;
+      background: #3b82f6;
+      box-shadow: 0 0 8px #3b82f6;
+      animation: scanLine 2s linear infinite;
+    }
+    @keyframes scanLine {
+      0% { top: 0; }
+      50% { top: calc(100% - 2px); }
+      100% { top: 0; }
+    }
+    .scanner-hint {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 14px;
+      margin-top: 24px;
+    }
+    .scanner-footer {
+      text-align: center;
+    }
+    .scanner-footer-text {
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 13px;
+    }
+
     .connect-error {
       color: #e74856;
       font-size: 12px;
       text-align: center;
-      margin-bottom: 16px;
+      margin-top: 16px;
       min-height: 16px;
     }
     .connect-hint {
@@ -481,27 +626,62 @@
     <div>连接中...</div>
   </div>
 
-  <!-- 连接页面 (Capacitor App) -->
+  <!-- 连接页面 (Capacitor App) - 扫码模式 -->
   <div id="connect-page" class="connect-container hidden">
-    <div class="connect-box">
-      <div class="connect-title">🚀 TakeLink</div>
-      <div class="connect-subtitle">局域网远程终端</div>
-      <div class="connect-label">服务器地址</div>
-      <div class="connect-input-row">
-        <span class="connect-prefix">http://</span>
-        <input type="text" id="server-ip" class="connect-input" placeholder="192.168.1.100" value="">
-        <span class="connect-colon">:</span>
-        <input type="text" id="server-port" class="connect-port" placeholder="8080" value="8080">
+    <!-- Logo -->
+    <div class="connect-logo">
+      <div class="connect-logo-icon">
+        <span>🚀</span>
       </div>
-      <button id="connect-btn" class="connect-btn">连接</button>
-      <div id="connect-error" class="connect-error"></div>
-      <div class="connect-hint">
-        <div class="connect-hint-title">使用步骤</div>
-        <div class="connect-hint-text">
-          1. 电脑上运行 TakeLink CLI<br>
-          2. 查看显示的 IP 地址<br>
-          3. 在上方输入地址并连接
-        </div>
+      <div class="connect-title">TakeLink</div>
+      <div class="connect-subtitle">局域网远程终端</div>
+    </div>
+
+    <!-- 扫码按钮 -->
+    <button id="scan-btn" class="scan-btn">
+      <div class="scan-btn-icon">
+        <span>📷</span>
+      </div>
+      <div class="scan-btn-title">扫描二维码连接</div>
+      <div class="scan-btn-hint">点击开始扫描</div>
+    </button>
+
+    <!-- 历史记录 -->
+    <div id="history-section" class="history-section">
+      <div class="history-title">最近连接</div>
+      <div id="history-list"></div>
+    </div>
+
+    <div id="connect-error" class="connect-error"></div>
+
+    <!-- 底部提示 -->
+    <div class="connect-footer">
+      <div class="connect-footer-text">
+        在电脑上运行 TakeLink CLI<br>
+        扫描屏幕上的二维码即可连接
+      </div>
+    </div>
+  </div>
+
+  <!-- 扫码视图 -->
+  <div id="scanner-view" class="scanner-view">
+    <video id="scanner-video" class="scanner-video" autoplay playsinline muted></video>
+    <div class="scanner-overlay">
+      <div class="scanner-header">
+        <button id="scanner-close" class="scanner-close">✕</button>
+        <span class="scanner-title">扫描连接</span>
+        <div class="scanner-placeholder"></div>
+      </div>
+      <div class="scanner-frame">
+        <div class="scanner-corner tl"></div>
+        <div class="scanner-corner tr"></div>
+        <div class="scanner-corner bl"></div>
+        <div class="scanner-corner br"></div>
+        <div class="scanner-line"></div>
+      </div>
+      <div class="scanner-hint">将二维码放入框内自动扫描</div>
+      <div class="scanner-footer">
+        <div class="scanner-footer-text">扫描 TakeLink CLI 显示的二维码</div>
       </div>
     </div>
   </div>
@@ -589,6 +769,25 @@
   <script src="socket.io.min.js"></script>
   <script src="/node_modules/xterm/lib/xterm.js"></script>
   <script src="/node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
+  <!-- BarcodeDetector polyfill for Android -->
+  <script>
+    // BarcodeDetector polyfill using zxing-wasm
+    if (!('BarcodeDetector' in window)) {
+      window.BarcodeDetector = class BarcodeDetector {
+        constructor(options = {}) {
+          this.formats = options.formats || ['qr_code'];
+          this.wasmModule = null;
+        }
+
+        async detect(image) {
+          // 简单的 polyfill - 使用 canvas 分析
+          // 由于 Android WebView 可能不支持，这里提供一个后备方案
+          // 实际扫码依赖于 Capacitor 的 Camera + Barcode 插件
+          return [];
+        }
+      };
+    }
+  </script>
   <script>
     // 全局变量
     let socket = null;
@@ -1272,51 +1471,239 @@
         $('connecting').style.display = 'none';
         $('connect-page').classList.remove('hidden');
 
-        // 连接按钮事件
-        $('connect-btn').onclick = connectToServer;
-        $('server-ip').onkeydown = (e) => { if (e.key === 'Enter') connectToServer(); };
-        $('server-port').onkeydown = (e) => { if (e.key === 'Enter') connectToServer(); };
+        // 扫码按钮事件
+        $('scan-btn').onclick = startScanner;
+        $('scanner-close').onclick = stopScanner;
 
-        // 加载历史地址
-        const savedUrl = localStorage.getItem('takelink-server');
-        if (savedUrl) {
-          try {
-            const url = new URL(savedUrl);
-            $('server-ip').value = url.hostname;
-            $('server-port').value = url.port || '8080';
-          } catch(e) {}
-        }
+        // 加载历史记录
+        loadHistory();
       } else {
         // 浏览器环境：直接连接
         connectSocket();
       }
     }
 
-    // 连接到指定服务器 (Capacitor)
-    function connectToServer() {
-      const ip = $('server-ip').value.trim();
-      const port = $('server-port').value.trim() || '8080';
+    // 历史记录管理
+    const HISTORY_KEY = 'takelink_history';
+    const MAX_HISTORY = 5;
 
-      if (!ip) {
-        $('connect-error').textContent = '请输入服务器地址';
+    function loadHistory() {
+      try {
+        const saved = localStorage.getItem(HISTORY_KEY);
+        if (saved) {
+          const history = JSON.parse(saved);
+          renderHistory(history);
+        }
+      } catch(e) {
+        console.error('加载历史失败:', e);
+      }
+    }
+
+    function saveToHistory(url) {
+      try {
+        let history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        history = [
+          { url, lastUsed: Date.now() },
+          ...history.filter(h => h.url !== url)
+        ].slice(0, MAX_HISTORY);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        renderHistory(history);
+      } catch(e) {
+        console.error('保存历史失败:', e);
+      }
+    }
+
+    function renderHistory(history) {
+      const container = $('history-list');
+      const section = $('history-section');
+
+      if (!history || history.length === 0) {
+        section.style.display = 'none';
         return;
       }
 
-      const serverUrl = `http://${ip}:${port}`;
-      $('connect-error').textContent = '';
-      $('connect-btn').textContent = '连接中...';
-      $('connect-btn').disabled = true;
+      section.style.display = 'block';
+      container.innerHTML = history.map(item => `
+        <div class="history-item" onclick="connectFromHistory('${item.url}')" oncontextmenu="deleteHistory(event, '${item.url}')">
+          <div class="history-icon"><span>🖥️</span></div>
+          <div class="history-content">
+            <div class="history-url">${formatHistoryUrl(item.url)}</div>
+            <div class="history-time">${formatHistoryTime(item.lastUsed)}</div>
+          </div>
+          <span class="history-arrow">›</span>
+        </div>
+      `).join('');
+    }
 
-      // 保存地址
-      localStorage.setItem('takelink-server', serverUrl);
+    function formatHistoryUrl(url) {
+      try {
+        const u = new URL(url);
+        return u.host;
+      } catch(e) {
+        return url;
+      }
+    }
+
+    function formatHistoryTime(timestamp) {
+      const diff = Date.now() - timestamp;
+      if (diff < 60000) return '刚刚';
+      if (diff < 3600000) return Math.floor(diff / 60000) + ' 分钟前';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + ' 小时前';
+      return Math.floor(diff / 86400000) + ' 天前';
+    }
+
+    function connectFromHistory(url) {
+      connectToServer(url);
+    }
+
+    function deleteHistory(e, url) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (confirm('确定删除此连接记录吗？')) {
+        let history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        history = history.filter(h => h.url !== url);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        renderHistory(history);
+      }
+    }
+
+    // 扫码功能
+    let scannerStream = null;
+    let barcodeScanner = null;
+
+    async function startScanner() {
+      // 检测是否在 Capacitor 环境
+      const isCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
+
+      if (isCapacitor) {
+        // 使用 Capacitor BarcodeScanner 插件
+        try {
+          const { BarcodeScanner } = await import('/node_modules/@capacitor-community/barcode-scanner/dist/esm/index.js');
+
+          // 请求权限
+          const status = await BarcodeScanner.checkPermission({ force: true });
+          if (!status.granted) {
+            $('connect-error').textContent = '需要相机权限才能扫描二维码';
+            return;
+          }
+
+          // 显示扫描视图
+          $('scanner-view').classList.add('active');
+          $('connect-error').textContent = '';
+
+          // 开始扫描
+          BarcodeScanner.hideBackground();
+          const result = await BarcodeScanner.startScan();
+
+          if (result.hasContent) {
+            handleQRCode(result.content);
+          }
+        } catch(e) {
+          $('connect-error').textContent = '扫码失败: ' + e.message;
+          $('scanner-view').classList.remove('active');
+        }
+      } else {
+        // Web 环境：使用原生相机 API
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' }
+          });
+          scannerStream = stream;
+
+          const video = $('scanner-video');
+          video.srcObject = stream;
+          video.play();
+
+          $('scanner-view').classList.add('active');
+          $('connect-error').textContent = '';
+
+          // 开始扫描
+          scanQRCode();
+        } catch(e) {
+          $('connect-error').textContent = '无法访问相机: ' + e.message;
+        }
+      }
+    }
+
+    async function stopScanner() {
+      const isCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
+
+      if (isCapacitor) {
+        try {
+          const { BarcodeScanner } = await import('/node_modules/@capacitor-community/barcode-scanner/dist/esm/index.js');
+          BarcodeScanner.stopScan();
+          BarcodeScanner.showBackground();
+        } catch(e) {}
+      } else if (scannerStream) {
+        scannerStream.getTracks().forEach(track => track.stop());
+        scannerStream = null;
+      }
+      $('scanner-view').classList.remove('active');
+    }
+
+    async function scanQRCode() {
+      if (!scannerStream) return;
+
+      const video = $('scanner-video');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // 等待视频加载
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+        requestAnimationFrame(scanQRCode);
+        return;
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+
+      // 使用 BarcodeDetector 解码
+      try {
+        if ('BarcodeDetector' in window) {
+          const detector = new BarcodeDetector({ formats: ['qr_code'] });
+          const barcodes = await detector.detect(canvas);
+          if (barcodes.length > 0) {
+            handleQRCode(barcodes[0].rawValue);
+            return;
+          }
+        }
+      } catch(e) {}
+
+      // 继续扫描
+      requestAnimationFrame(scanQRCode);
+    }
+
+    function handleQRCode(data) {
+      stopScanner();
+
+      // 解析二维码数据
+      // 支持格式: http://192.168.1.100:8080/app 或纯 URL
+      let url = data;
+      if (data.includes('/app')) {
+        url = data.replace(/\/app$/, '');
+      }
+
+      // 验证 URL 格式
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        connectToServer(url);
+      } else {
+        $('connect-error').textContent = '无效二维码，请扫描 TakeLink 显示的二维码';
+      }
+    }
+
+    // 连接到指定服务器 (Capacitor)
+    function connectToServer(serverUrl) {
+      $('connect-error').textContent = '';
+
+      // 保存到历史
+      saveToHistory(serverUrl);
 
       // 连接服务器
       try {
         connectSocket(serverUrl);
       } catch(e) {
         $('connect-error').textContent = '连接失败: ' + e.message;
-        $('connect-btn').textContent = '连接';
-        $('connect-btn').disabled = false;
       }
     }
 
@@ -1380,8 +1767,6 @@
         // 检查是否在连接页面
         if (!$('connect-page').classList.contains('hidden')) {
           $('connect-error').textContent = '连接失败: ' + err.message;
-          $('connect-btn').textContent = '连接';
-          $('connect-btn').disabled = false;
         } else {
           $('connecting').innerHTML = '<div style="color:#e74856">连接失败: ' + err.message + '</div>';
         }

@@ -36,6 +36,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Install BarcodeScanner
+        run: pnpm add @capacitor-community/barcode-scanner
+
       - name: Install Capacitor
         run: |
           pnpm add -D @capacitor/core @capacitor/cli @capacitor/android @capacitor/status-bar

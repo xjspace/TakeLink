@@ -18,6 +18,7 @@
     "android:build": "pnpm run cap:sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
+    "@capacitor-community/barcode-scanner": "^4.0.1",
     "@xterm/addon-fit": "^0.11.0",
     "ansi-to-html": "^0.7.2",
     "chalk": "^5.3.0",
