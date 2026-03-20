@@ -1,16 +1,18 @@
-# TakeLink - 局域网远程控制 Claude Code
+# TakeLink - LAN Remote Terminal for Claude Code
 
-> 手机端直接控制电脑上的 Claude Code，无需云端服务器，零延迟，完全私密。
+> Control Claude Code on your computer from your phone. Zero latency, fully private, no cloud server required.
 
-## 架构
+[中文文档](README_CN.md)
+
+## Architecture
 
 ```
 ┌─────────────────┐              ┌─────────────────────┐
-│   手机 App      │  ←─ WebSocket ──→ │      电脑 CLI       │
-│  (React Native) │              │                     │
+│   Mobile App    │  ←─ WebSocket ──→ │      PC CLI         │
+│  (Capacitor)    │              │                     │
 │                 │              │  HTTP Server :8080  │
-│  输入地址连接    │              │  WebSocket Server   │
-│  发送/接收消息   │              │  Claude 进程管理    │
+│  Scan to connect│              │  WebSocket Server   │
+│  Send/receive   │              │  Claude management  │
 └─────────────────┘              └─────────────────────┘
                                         │
                                         ▼
@@ -19,105 +21,98 @@
                               └─────────────────────┘
 ```
 
-## 快速开始
+## Quick Start
 
-### 1. 电脑端 (CLI)
+### 1. PC Side (CLI)
 
 **Windows:**
 ```bash
-cd G:\TakeLink\cli
-start.bat          # 双击运行，自动安装依赖并启动
+cd TakeLink\cli
+start.bat          # Double-click to run
 ```
 
 **Mac/Linux:**
 ```bash
 cd TakeLink/cli
-./start.sh         # 自动安装依赖并启动
+./start.sh         # Auto install deps and start
 ```
 
-**或手动运行:**
+**Or manually:**
 ```bash
 cd cli
 pnpm install
 pnpm dev
 ```
 
-运行后会显示 QR 码：
+After running, you'll see a QR code:
 
 ```
-🚀 TakeLink - 局域网远程控制 Claude Code
+🚀 TakeLink - LAN Remote Terminal
 ────────────────────────────────────────
 
-📱 手机扫描二维码连接:
+📱 Scan QR code to connect:
 
 ████████████████
 ████████████████
 ███ ██ ███ █ ███
 ...
 
-   手机端: http://192.168.1.100:8080/app
-   桌面端: http://192.168.1.100:8080
+   Mobile: http://192.168.1.100:8080/app
+   Desktop: http://192.168.1.100:8080
 
 ────────────────────────────────────────
 ```
 
-### 2. 手机端
+### 2. Mobile Side
 
-**方式一：浏览器直接打开 (推荐)**
+**Option 1: Browser (Recommended)**
 
-1. 确保手机和电脑在同一 WiFi
-2. 手机浏览器打开 `http://192.168.1.100:8080/app`
-3. 开始对话！
+1. Connect phone and PC to the same WiFi
+2. Open `http://192.168.1.100:8080/app` on phone
+3. Start chatting!
 
-**方式二：Expo App (可选)**
+**Option 2: Capacitor App (Android)**
 
 ```bash
-cd app
-pnpm install
-pnpm start
+cd cli
+pnpm run cap:build
+# Build APK in Android Studio
 ```
 
-然后在手机 Expo Go 中打开。
+### 3. Desktop Browser Testing
 
-### 3. 桌面浏览器测试
+Open `http://192.168.1.100:8080` on any device to test.
 
-电脑或其他设备打开 `http://192.168.1.100:8080` 即可测试。
-
-## 项目结构
+## Project Structure
 
 ```
 TakeLink/
-├── cli/                    # 电脑端
+├── cli/                    # PC Side
 │   ├── src/
-│   │   └── index.ts       # 主程序
+│   │   └── index.ts       # Main program
+│   ├── public/            # Web assets
 │   ├── package.json
 │   └── tsconfig.json
-├── app/                    # 手机端 (Expo)
-│   ├── app/
-│   │   ├── _layout.tsx    # 路由布局
-│   │   ├── index.tsx      # 连接页面
-│   │   └── session.tsx    # 会话页面
-│   ├── package.json
-│   └── app.json
+├── android/                # Android App (generated)
 └── README.md
 ```
 
-## 功能特性
+## Features
 
-- ✅ 局域网直连，无需云端
-- ✅ QR 码扫描连接
-- ✅ 实时消息收发
-- ✅ 支持多手机同时连接
-- ✅ 浏览器直接测试
-- ✅ 本地终端也可输入
-- ✅ 零延迟 (<10ms)
-- ✅ 完全私密（数据不离开局域网）
-- ✅ 终端彩色输出（ANSI 支持）
-- ✅ 多终端管理（启动/选择/切换）
+- Direct LAN connection, no cloud needed
+- QR code scanning
+- Real-time messaging
+- Multiple phone connections
+- Browser testing support
+- Local terminal input
+- Zero latency (<10ms)
+- Fully private (data stays on LAN)
+- ANSI color output
+- Multi-terminal management
 
-## 配置
+## Configuration
 
-默认启动命令为 `claude`，可通过环境变量自定义：
+Default command is `claude`, customize via environment variable:
 
 ```bash
 # Windows
@@ -128,23 +123,23 @@ pnpm dev
 CLAUDE_COMMAND=/path/to/script pnpm dev
 ```
 
-## 扩展方向
+## Roadmap
 
-1. **端到端加密**: 添加 TweetNaCl 加密
-2. **文件传输**: 支持发送文件
-3. **会话历史**: 本地保存对话记录
-4. **多代理支持**: 支持 Codex、Gemini
-5. **推送通知**: 后台时接收通知
-6. **语音输入**: 语音转文字
+1. **E2E Encryption**: Add TweetNaCl encryption
+2. **File Transfer**: Send files between devices
+3. **Session History**: Local conversation storage
+4. **Multi-Agent**: Support Codex, Gemini
+5. **Push Notifications**: Background alerts
+6. **Voice Input**: Speech to text
 
-## 致谢
+## Acknowledgments
 
-本项目借鉴了 Happy Code、Claude TUI 等优秀项目的设计思路。
+Inspired by Happy Code, Claude TUI and other excellent projects.
 
-## 版本
+## Version
 
-v1.2
+v1.1.9
 
-## 许可证
+## License
 
 MIT
