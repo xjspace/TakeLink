@@ -1544,7 +1544,7 @@
       if (isCapacitor) {
         // 使用 Capacitor BarcodeScanner 插件
         try {
-          const { BarcodeScanner } = await import('/node_modules/@capacitor-community/barcode-scanner/dist/esm/index.js');
+          const { BarcodeScanner } = Capacitor.Plugins;
 
           // 请求权限
           const status = await BarcodeScanner.checkPermission({ force: true });
@@ -1558,7 +1558,7 @@
           $('connect-error').textContent = '';
 
           // 开始扫描
-          BarcodeScanner.hideBackground();
+          await BarcodeScanner.hideBackground();
           const result = await BarcodeScanner.startScan();
 
           if (result.hasContent) {
@@ -1596,9 +1596,9 @@
 
       if (isCapacitor) {
         try {
-          const { BarcodeScanner } = await import('/node_modules/@capacitor-community/barcode-scanner/dist/esm/index.js');
-          BarcodeScanner.stopScan();
-          BarcodeScanner.showBackground();
+          const { BarcodeScanner } = Capacitor.Plugins;
+          await BarcodeScanner.stopScan();
+          await BarcodeScanner.showBackground();
         } catch(e) {}
       } else if (scannerStream) {
         scannerStream.getTracks().forEach(track => track.stop());
