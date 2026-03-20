@@ -154,6 +154,11 @@
       transform: translate(-50%, -50%);
       text-align: center;
       color: #888;
+      z-index: 10;
+    }
+    /* Capacitor 原生环境：默认隐藏 connecting */
+    @supports (-webkit-touch-callout: none) {
+      .connecting { display: none; }
     }
     .spinner {
       width: 28px; height: 28px;
@@ -316,7 +321,7 @@
     .scanner-view {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: #000;
+      background: transparent; /* Capacitor 需要透明才能显示底层相机 */
       display: none;
       flex-direction: column;
       z-index: 1000;
@@ -329,6 +334,8 @@
       object-fit: cover;
       background: #000;
     }
+    /* Capacitor 环境：隐藏 video，使用插件原生相机 */
+    .scanner-view.native .scanner-video { display: none; }
     /* 隐藏 video 播放控件 */
     .scanner-video::-webkit-media-controls { display: none !important; }
     .scanner-video::-webkit-media-controls-enclosure { display: none !important; }
@@ -1562,20 +1569,29 @@
             return;
           }
 
-          // 显示扫描视图
-          $('scanner-view').classList.add('active');
+          // 显示扫描视图（添加 native class 隐藏 video 元素）
+          $('scanner-view').classList.add('active', 'native');
           $('connect-error').textContent = '';
 
-          // 开始扫描
+          // 先隐藏 WebView 背景
           await BarcodeScanner.hideBackground();
+
+          // 延迟一点启动扫描，确保 UI 已更新
+          await new Promise(r => setTimeout(r, 100));
           const result = await BarcodeScanner.startScan();
 
           if (result.hasContent) {
             handleQRCode(result.content);
           }
         } catch(e) {
+          console.error('扫码失败:', e);
           $('connect-error').textContent = '扫码失败: ' + e.message;
-          $('scanner-view').classList.remove('active');
+          $('scanner-view').classList.remove('active', 'native');
+          // 恢复背景
+          try {
+            const { BarcodeScanner } = Capacitor.Plugins;
+            await BarcodeScanner.showBackground();
+          } catch(err) {}
         }
       } else {
         // Web 环境：使用原生相机 API
@@ -1613,7 +1629,7 @@
         scannerStream.getTracks().forEach(track => track.stop());
         scannerStream = null;
       }
-      $('scanner-view').classList.remove('active');
+      $('scanner-view').classList.remove('active', 'native');
     }
 
     async function scanQRCode() {
@@ -1649,6 +1665,16 @@
       requestAnimationFrame(scanQRCode);
     }
 
+    // 重置扫码按钮状态
+    function resetScanButton() {
+      const scanBtn = $('scan-btn');
+      if (scanBtn) {
+        scanBtn.disabled = false;
+        const title = scanBtn.querySelector('.scan-btn-title');
+        if (title) title.textContent = '扫描二维码连接';
+      }
+    }
+
     function handleQRCode(data) {
       stopScanner();
 
@@ -1671,6 +1697,10 @@
     function connectToServer(serverUrl) {
       $('connect-error').textContent = '';
 
+      // 显示连接中状态
+      $('scan-btn').disabled = true;
+      $('scan-btn').querySelector('.scan-btn-title').textContent = '连接中...';
+
       // 保存到历史
       saveToHistory(serverUrl);
 
@@ -1679,6 +1709,8 @@
         connectSocket(serverUrl);
       } catch(e) {
         $('connect-error').textContent = '连接失败: ' + e.message;
+        $('scan-btn').disabled = false;
+        $('scan-btn').querySelector('.scan-btn-title').textContent = '扫描二维码连接';
       }
     }
 
@@ -1716,20 +1748,26 @@
               if (result.success) {
                 isAuthenticated = true;
                 socket.emit('ready');
+                // 恢复按钮状态
+                resetScanButton();
                 showPage($('list-page'));
               } else {
                 // token 失效，清除并显示登录
                 localStorage.removeItem('takelink-token');
+                resetScanButton();
                 showLogin();
               }
             });
           } else {
+            resetScanButton();
             showLogin();
           }
         } else {
           // 无需认证，直接进入
           isAuthenticated = true;
           socket.emit('ready');
+          // 恢复按钮状态
+          resetScanButton();
           showPage($('list-page'));
         }
       });
@@ -1739,11 +1777,17 @@
       });
 
       socket.on('connect_error', (err) => {
+        console.error('Socket 连接错误:', err);
         // 检查是否在连接页面
         if (!$('connect-page').classList.contains('hidden')) {
           $('connect-error').textContent = '连接失败: ' + err.message;
-          $('connect-btn').textContent = '连接';
-          $('connect-btn').disabled = false;
+          // 恢复扫码按钮状态
+          const scanBtn = $('scan-btn');
+          if (scanBtn) {
+            scanBtn.disabled = false;
+            const title = scanBtn.querySelector('.scan-btn-title');
+            if (title) title.textContent = '扫描二维码连接';
+          }
         } else {
           $('connecting').innerHTML = '<div style="color:#e74856">连接失败: ' + err.message + '</div>';
         }
