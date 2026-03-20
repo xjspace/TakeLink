@@ -6,6 +6,10 @@ on:
       - 'v*'
   workflow_dispatch:
 
+defaults:
+  run:
+    working-directory: cli
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -39,16 +43,8 @@ jobs:
       - name: Install BarcodeScanner
         run: pnpm add @capacitor-community/barcode-scanner
 
-      - name: Install Capacitor
-        run: |
-          pnpm add -D @capacitor/core @capacitor/cli @capacitor/android @capacitor/status-bar
-
-      - name: Initialize Capacitor
-        run: |
-          if [ ! -d "android" ]; then
-            npx cap add android
-          fi
-          npx cap sync android
+      - name: Sync Capacitor
+        run: npx cap sync android
 
       - name: Configure transparent status bar
         run: |
@@ -65,7 +61,6 @@ jobs:
           </resources>
           EOF
 
-      # 动态创建 keystore（避免 Java 版本不兼容问题）
       - name: Create keystore
         if: startsWith(github.ref, 'refs/tags/')
         env:
@@ -108,19 +103,19 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: lan-claude-debug
-          path: android/app/build/outputs/apk/debug/*.apk
+          name: takelink-debug
+          path: cli/android/app/build/outputs/apk/debug/*.apk
 
       - name: Upload Release APK
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4
         with:
-          name: lan-claude-release
-          path: android/app/build/outputs/apk/release/*.apk
+          name: takelink-release
+          path: cli/android/app/build/outputs/apk/release/*.apk
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: android/app/build/outputs/apk/release/*.apk
+          files: cli/android/app/build/outputs/apk/release/*.apk
           generate_release_notes: true
