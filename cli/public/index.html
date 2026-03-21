@@ -6,6 +6,9 @@
   <meta name="theme-color" content="#0c0c0c">
   <title>TakeLink</title>
   <link rel="stylesheet" href="xterm/xterm.css">
+  <!-- Eruda 移动端调试工具 -->
+  <script src="//cdn.jsdelivr.net/npm/eruda"></script>
+  <script>eruda.init();</script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html {
@@ -245,6 +248,64 @@
     .scan-btn-hint {
       font-size: 14px;
       opacity: 0.7;
+    }
+
+    /* 手动输入区域 */
+    .manual-input-section {
+      width: 100%;
+      max-width: 300px;
+      margin-bottom: 20px;
+    }
+    .manual-divider {
+      display: flex;
+      align-items: center;
+      margin: 16px 0;
+    }
+    .manual-divider::before,
+    .manual-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .manual-divider span {
+      padding: 0 12px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .manual-input-row {
+      display: flex;
+      gap: 8px;
+    }
+    .manual-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 12px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    .manual-input:focus {
+      border-color: #3b82f6;
+    }
+    .manual-input::placeholder {
+      color: #4b5563;
+    }
+    .connect-btn {
+      background: #3b82f6;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .connect-btn:active {
+      background: #2563eb;
     }
 
     /* 历史记录 */
@@ -622,9 +683,169 @@
       height: 1px;
       opacity: 0;
     }
+
+    /* 调试日志面板 */
+    #debug-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-height: 40vh;
+      background: rgba(0, 0, 0, 0.95);
+      border-top: 1px solid #333;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      font-family: monospace;
+      font-size: 11px;
+    }
+    #debug-panel.collapsed { display: none; }
+    #debug-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
+    }
+    #debug-title { color: #3b82f6; font-weight: bold; }
+    #debug-toggle {
+      background: #333;
+      border: none;
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #debug-toggle:hover { background: #444; }
+    #debug-log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 12px;
+      color: #0f0;
+    }
+    .log-info { color: #3b82f6; }
+    .log-warn { color: #f59e0b; }
+    .log-error { color: #ef4444; }
+    .log-time { color: #666; margin-right: 8px; }
+
+    /* 调试按钮（展开日志） */
+    #debug-btn {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: #3b82f6;
+      border: none;
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: grab;
+      z-index: 9998;
+      font-size: 16px;
+      user-select: none;
+      touch-action: none;
+    }
+    #debug-btn:active { cursor: grabbing; }
   </style>
 </head>
 <body>
+
+  <!-- 调试日志面板 -->
+  <div id="debug-panel" class="collapsed">
+    <div id="debug-header">
+      <span id="debug-title">📋 Debug Log</span>
+      <button id="debug-toggle" onclick="toggleDebug()">✕ Close</button>
+    </div>
+    <div id="debug-log"></div>
+  </div>
+  <button id="debug-btn">📋</button>
+
+  <script>
+    let debugEnabled = true;
+    function toggleDebug() {
+      const panel = document.getElementById('debug-panel');
+      const btn = document.getElementById('debug-btn');
+      panel.classList.toggle('collapsed');
+      btn.style.display = panel.classList.contains('collapsed') ? 'block' : 'none';
+    }
+
+    // Debug 按钮拖拽功能
+    (function() {
+      const btn = document.getElementById('debug-btn');
+      if (!btn) return;
+
+      let isDragging = false;
+      let startX, startY, startRight, startBottom;
+      let hasMoved = false;
+
+      btn.addEventListener('mousedown', startDrag);
+      btn.addEventListener('touchstart', startDrag, { passive: false });
+
+      function startDrag(e) {
+        isDragging = true;
+        hasMoved = false;
+        const touch = e.touches ? e.touches[0] : e;
+        startX = touch.clientX;
+        startY = touch.clientY;
+
+        const rect = btn.getBoundingClientRect();
+        startRight = window.innerWidth - rect.right;
+        startBottom = window.innerHeight - rect.bottom;
+
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchmove', drag, { passive: false });
+        document.addEventListener('touchend', endDrag);
+
+        e.preventDefault();
+      }
+
+      function drag(e) {
+        if (!isDragging) return;
+        const touch = e.touches ? e.touches[0] : e;
+        const dx = startX - touch.clientX;
+        const dy = startY - touch.clientY;
+
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+          hasMoved = true;
+        }
+
+        const newRight = Math.max(0, Math.min(window.innerWidth - 36, startRight + dx));
+        const newBottom = Math.max(0, Math.min(window.innerHeight - 36, startBottom + dy));
+
+        btn.style.right = newRight + 'px';
+        btn.style.bottom = newBottom + 'px';
+
+        e.preventDefault();
+      }
+
+      function endDrag(e) {
+        isDragging = false;
+        document.removeEventListener('mousemove', drag);
+        document.removeEventListener('mouseup', endDrag);
+        document.removeEventListener('touchmove', drag);
+        document.removeEventListener('touchend', endDrag);
+
+        // 只有未移动时才触发点击
+        if (!hasMoved) {
+          toggleDebug();
+        }
+      }
+    })();
+
+    function log(msg, type = 'info') {
+      const logEl = document.getElementById('debug-log');
+      if (!logEl) return;
+      const time = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.className = 'log-' + type;
+      line.innerHTML = `<span class="log-time">[${time}]</span>${msg}`;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log('[' + type + ']', msg);
+    }
+  </script>
 
   <div id="connecting" class="connecting">
     <div class="spinner"></div>
@@ -650,6 +871,17 @@
       <div class="scan-btn-title">Scan QR Code to Connect</div>
       <div class="scan-btn-hint">Tap to start scanning</div>
     </button>
+
+    <!-- 手动输入区域 -->
+    <div class="manual-input-section">
+      <div class="manual-divider">
+        <span>or enter URL manually</span>
+      </div>
+      <div class="manual-input-row">
+        <input type="text" id="manual-url" class="manual-input" placeholder="http://192.168.1.5:8080">
+        <button id="connect-btn" class="connect-btn">Connect</button>
+      </div>
+    </div>
 
     <!-- 历史记录 -->
     <div id="history-section" class="history-section" style="display:none;">
@@ -1433,37 +1665,92 @@
 
     // 初始化
     function init() {
+      log('=== TakeLink Init ===', 'info');
+      log('URL: ' + window.location.href, 'info');
+      log('UserAgent: ' + navigator.userAgent, 'info');
+      log('ScreenWidth: ' + window.innerWidth + 'x' + window.innerHeight, 'info');
+
       // 检查依赖
       if (typeof io === 'undefined') {
         $('connecting').innerHTML = '<div style="color:#e74856">socket.io load failed</div>';
+        log('socket.io NOT loaded!', 'error');
         return;
       }
+      log('socket.io OK', 'info');
       if (typeof Terminal === 'undefined') {
         $('connecting').innerHTML = '<div style="color:#e74856">xterm.js load failed</div>';
+        log('xterm.js NOT loaded!', 'error');
         return;
       }
+      log('xterm.js OK', 'info');
       if (typeof FitAddon === 'undefined') {
         $('connecting').innerHTML = '<div style="color:#e74856">FitAddon load failed</div>';
+        log('FitAddon NOT loaded!', 'error');
         return;
       }
+      log('FitAddon OK', 'info');
 
       // 检测是否是移动设备（手机/平板）或 Capacitor 环境
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const isCapacitor = window.Capacitor || window.location.protocol === 'file:';
 
+      log('isMobile: ' + isMobile, 'info');
+      log('isCapacitor: ' + isCapacitor, 'info');
+      log('protocol: ' + window.location.protocol, 'info');
+
       if (isMobile || isCapacitor) {
-        // 移动端：显示扫码页面
-        $('connecting').style.display = 'none';
-        $('connect-page').classList.remove('hidden');
+        // 移动端检测
+        log('=> Mobile detected', 'warn');
 
-        // 扫码按钮事件
-        $('scan-btn').onclick = startScanner;
-        $('scanner-close').onclick = stopScanner;
+        // Capacitor App 环境（file:// 协议）：需要扫码或手动输入
+        if (isCapacitor) {
+          log('=> Capacitor App mode - showing scan page', 'warn');
+          $('connecting').style.display = 'none';
+          $('connect-page').classList.remove('hidden');
 
-        // 加载历史记录
-        loadHistory();
+          // 扫码按钮事件
+          $('scan-btn').onclick = startScanner;
+          $('scanner-close').onclick = stopScanner;
+
+          // 手动连接按钮事件
+          $('connect-btn').onclick = () => {
+            let url = $('manual-url').value.trim();
+            if (!url) {
+              $('connect-error').textContent = 'Please enter server URL';
+              return;
+            }
+            // 去除路径部分（如 /app），只保留 origin
+            if (url.includes('/app')) {
+              url = url.replace(/\/app.*$/, '');
+            }
+            // 验证 URL 格式
+            try {
+              const parsed = new URL(url);
+              url = parsed.origin;
+            } catch(e) {
+              $('connect-error').textContent = 'Invalid URL format (e.g. http://192.168.1.5:8080)';
+              return;
+            }
+            connectToServer(url);
+          };
+
+          // 回车键连接
+          $('manual-url').onkeydown = (e) => {
+            if (e.key === 'Enter') {
+              $('connect-btn').click();
+            }
+          };
+
+          // 加载历史记录
+          loadHistory();
+        } else {
+          // 手机 Web 浏览器：直接用当前 origin 连接
+          log('=> Mobile Web - auto connecting to: ' + window.location.origin, 'warn');
+          connectSocket();
+        }
       } else {
         // 桌面端：直接连接
+        log('=> Desktop mode, connecting...', 'warn');
         connectSocket();
       }
     }
@@ -1597,6 +1884,20 @@
         }
       } else {
         // Web 环境：使用原生相机 API
+        // 先检查是否支持 getUserMedia（HTTP 环境下不可用）
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          // HTTP 环境或不支持的浏览器
+          const isHTTPS = window.location.protocol === 'https:';
+          if (!isHTTPS) {
+            $('connect-error').innerHTML = '⚠️ HTTP 环境无法使用摄像头<br><span style="font-size:12px;color:#888">请使用下方手动输入地址</span>';
+          } else {
+            $('connect-error').textContent = '此浏览器不支持摄像头访问';
+          }
+          // 自动聚焦到手动输入框
+          $('manual-url').focus();
+          return;
+        }
+
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'environment' }
@@ -1613,7 +1914,18 @@
           // 开始扫描
           scanQRCode();
         } catch(e) {
-          $('connect-error').textContent = '无法访问相机: ' + e.message;
+          // 权限被拒绝或其他错误
+          let errorMsg = '无法访问相机';
+          if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+            errorMsg = '相机权限被拒绝，请在浏览器设置中允许访问';
+          } else if (e.name === 'NotFoundError') {
+            errorMsg = '未检测到摄像头设备';
+          } else if (e.name === 'NotReadableError') {
+            errorMsg = '摄像头被其他应用占用';
+          }
+          $('connect-error').innerHTML = '⚠️ ' + errorMsg + '<br><span style="font-size:12px;color:#888">请使用下方手动输入地址</span>';
+          // 自动聚焦到手动输入框
+          $('manual-url').focus();
         }
       }
     }
@@ -1718,6 +2030,9 @@
 
     // 建立 Socket 连接
     function connectSocket(serverUrl) {
+      // 如果没有指定服务器地址，使用当前页面的 origin
+      const url = serverUrl || window.location.origin;
+
       const socketOptions = {
         transports: ['websocket', 'polling'],
         reconnection: true,
@@ -1725,7 +2040,8 @@
         reconnectionDelayMax: 5000,
       };
 
-      socket = io(serverUrl, socketOptions);
+      log('Connecting to: ' + url, 'info');
+      socket = io(url, socketOptions);
 
       // Socket 事件
       socket.on('connect', () => {
