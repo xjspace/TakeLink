@@ -317,113 +317,6 @@
       min-height: 16px;
     }
 
-    /* 语言切换按钮 */
-    .lang-switch {
-      position: absolute;
-      top: env(safe-area-inset-top, 16px);
-      right: 16px;
-      display: flex;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 8px;
-      overflow: hidden;
-      z-index: 10;
-    }
-    .lang-btn {
-      padding: 6px 14px;
-      font-size: 12px;
-      font-weight: 500;
-      color: #9ca3af;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .lang-btn.active {
-      background: #3b82f6;
-      color: #fff;
-    }
-
-    /* README 区域 */
-    .readme-section {
-      width: 100%;
-      max-width: 340px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 16px;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-    .readme-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .readme-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
-    }
-    .readme-lang-toggle {
-      display: flex;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-    .readme-lang-btn {
-      padding: 4px 10px;
-      font-size: 11px;
-      font-weight: 500;
-      color: #6b7280;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .readme-lang-btn.active {
-      background: #3b82f6;
-      color: #fff;
-    }
-    .readme-content {
-      display: none;
-      font-size: 12px;
-      line-height: 1.7;
-      color: #9ca3af;
-    }
-    .readme-content.active {
-      display: block;
-    }
-    .readme-content h3 {
-      font-size: 13px;
-      font-weight: 600;
-      color: #e5e7eb;
-      margin: 12px 0 6px;
-    }
-    .readme-content h3:first-child {
-      margin-top: 0;
-    }
-    .readme-content p {
-      margin: 4px 0;
-    }
-    .readme-content ul {
-      margin: 4px 0;
-      padding-left: 16px;
-    }
-    .readme-content li {
-      margin: 2px 0;
-    }
-    .readme-content code {
-      background: rgba(59, 130, 246, 0.15);
-      padding: 1px 5px;
-      border-radius: 4px;
-      font-size: 11px;
-      color: #60a5fa;
-    }
-
     /* 扫码视图 */
     .scanner-view {
       position: fixed;
@@ -442,14 +335,17 @@
       background: #000;
     }
     /* Capacitor 环境：隐藏 video，使用插件原生相机 */
-    .scanner-view.native .scanner-video { display: none; }
-    /* 隐藏 video 播放控件 */
+    .scanner-view.native .scanner-video { display: none !important; }
+    /* 彻底隐藏 video 播放控件和播放按钮 */
     .scanner-video::-webkit-media-controls { display: none !important; }
     .scanner-video::-webkit-media-controls-enclosure { display: none !important; }
     .scanner-video::-webkit-media-controls-panel { display: none !important; }
     .scanner-video::-webkit-media-controls-play-button { display: none !important; }
     .scanner-video::-webkit-media-controls-start-playback-button { display: none !important; }
     .scanner-video::-internal-media-controls-overlay-cast-button { display: none !important; }
+    /* 额外：隐藏 video 的 overlay 播放按钮 */
+    .scanner-video::-webkit-media-controls-overlay-enclosure { display: none !important; }
+    .scanner-video::-webkit-media-controls-overlay-play-button { display: none !important; }
     .scanner-overlay {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -737,19 +633,13 @@
 
   <!-- 连接页面 (Capacitor App) - 扫码模式 -->
   <div id="connect-page" class="connect-container hidden">
-    <!-- 语言切换 -->
-    <div class="lang-switch">
-      <button class="lang-btn active" data-lang="en">EN</button>
-      <button class="lang-btn" data-lang="zh">中文</button>
-    </div>
-
     <!-- Logo -->
     <div class="connect-logo">
       <div class="connect-logo-icon">
         <span>🚀</span>
       </div>
       <div class="connect-title">TakeLink</div>
-      <div class="connect-subtitle" data-i18n="subtitle">LAN Remote Terminal</div>
+      <div class="connect-subtitle">局域网远程终端</div>
     </div>
 
     <!-- 扫码按钮 -->
@@ -757,66 +647,23 @@
       <div class="scan-btn-icon">
         <span>📷</span>
       </div>
-      <div class="scan-btn-title" data-i18n="scanTitle">Scan QR Code to Connect</div>
-      <div class="scan-btn-hint" data-i18n="scanHint">Tap to start scanning</div>
+      <div class="scan-btn-title">扫描二维码连接</div>
+      <div class="scan-btn-hint">点击开始扫描</div>
     </button>
 
     <!-- 历史记录 -->
     <div id="history-section" class="history-section" style="display:none;">
-      <div class="history-title" data-i18n="recentConnections">Recent Connections</div>
+      <div class="history-title">最近连接</div>
       <div id="history-list"></div>
     </div>
 
     <div id="connect-error" class="connect-error"></div>
 
-    <!-- README 区域 -->
-    <div class="readme-section">
-      <div class="readme-header">
-        <span class="readme-title">README</span>
-      </div>
-      <!-- English Content -->
-      <div class="readme-content active" id="readme-en">
-        <h3>TakeLink</h3>
-        <p>A LAN remote terminal tool - access your terminal from anywhere.</p>
-        <h3>Quick Start</h3>
-        <ul>
-          <li>Run <code>takelink</code> on your computer</li>
-          <li>Scan the QR code displayed</li>
-          <li>Start controlling your terminal remotely</li>
-        </ul>
-        <h3>Features</h3>
-        <ul>
-          <li>Real-time terminal streaming</li>
-          <li>Virtual keyboard with special keys</li>
-          <li>Multiple terminal sessions</li>
-          <li>Secure password protection</li>
-        </ul>
-      </div>
-      <!-- 中文内容 -->
-      <div class="readme-content" id="readme-zh">
-        <h3>TakeLink</h3>
-        <p>局域网远程终端工具 - 随时随地接管你的终端。</p>
-        <h3>快速开始</h3>
-        <ul>
-          <li>在电脑上运行 <code>takelink</code></li>
-          <li>扫描屏幕显示的二维码</li>
-          <li>开始远程控制你的终端</li>
-        </ul>
-        <h3>功能特性</h3>
-        <ul>
-          <li>实时终端流传输</li>
-          <li>虚拟键盘支持特殊按键</li>
-          <li>多终端会话管理</li>
-          <li>密码安全保护</li>
-        </ul>
-      </div>
-    </div>
-
     <!-- 底部提示 -->
     <div class="connect-footer">
-      <div class="connect-footer-text" data-i18n="footerHint">
-        Run TakeLink CLI on your computer<br>
-        Scan the QR code to connect
+      <div class="connect-footer-text">
+        在电脑上运行 TakeLink CLI<br>
+        扫描屏幕上的二维码即可连接
       </div>
     </div>
   </div>
@@ -827,7 +674,7 @@
     <div class="scanner-overlay">
       <div class="scanner-header">
         <button id="scanner-close" class="scanner-close">✕</button>
-        <span class="scanner-title" data-i18n="scannerTitle">Scan to Connect</span>
+        <span class="scanner-title">扫描连接</span>
         <div class="scanner-placeholder"></div>
       </div>
       <div class="scanner-frame">
@@ -837,9 +684,9 @@
         <div class="scanner-corner br"></div>
         <div class="scanner-line"></div>
       </div>
-      <div class="scanner-hint" data-i18n="scannerHint">Position QR code within the frame</div>
+      <div class="scanner-hint">将二维码放入框内自动扫描</div>
       <div class="scanner-footer">
-        <div class="scanner-footer-text" data-i18n="scannerFooter">Scan the QR code displayed by TakeLink CLI</div>
+        <div class="scanner-footer-text">扫描 TakeLink CLI 显示的二维码</div>
       </div>
     </div>
   </div>
@@ -1613,58 +1460,6 @@
         // 扫码按钮事件
         $('scan-btn').onclick = startScanner;
         $('scanner-close').onclick = stopScanner;
-
-        // 全局语言切换
-        const i18n = {
-          en: {
-            subtitle: 'LAN Remote Terminal',
-            scanTitle: 'Scan QR Code to Connect',
-            scanHint: 'Tap to start scanning',
-            historyTitle: 'Recent Connections',
-            footerHint: 'Run TakeLink CLI on your computer<br>Scan the QR code to connect',
-            scannerTitle: 'Scan to Connect',
-            scannerHint: 'Position QR code within the frame',
-            scannerFooter: 'Scan the QR code displayed by TakeLink CLI',
-            connecting: 'Connecting...'
-          },
-          zh: {
-            subtitle: '局域网远程终端',
-            scanTitle: '扫描二维码连接',
-            scanHint: '点击开始扫描',
-            historyTitle: '最近连接',
-            footerHint: '在电脑上运行 TakeLink CLI<br>扫描屏幕上的二维码即可连接',
-            scannerTitle: '扫描连接',
-            scannerHint: '将二维码放入框内自动扫描',
-            scannerFooter: '扫描 TakeLink CLI 显示的二维码',
-            connecting: '连接中...'
-          }
-        };
-
-        let currentLang = 'en';
-
-        function setLanguage(lang) {
-          currentLang = lang;
-          // 更新按钮状态
-          document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-          document.querySelector('.lang-btn[data-lang="' + lang + '"]').classList.add('active');
-          document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-          document.querySelector('.lang-btn[data-lang="' + lang + '"]').classList.add('active');
-          // 更新 README 内容
-          document.querySelectorAll('.readme-content').forEach(c => c.classList.remove('active'));
-          $('readme-' + lang).classList.add('active');
-          // 更新所有 data-i18n 元素
-          document.querySelectorAll('[data-i18n]').forEach(el => {
-            const key = el.dataset.i18n;
-            if (i18n[lang] && i18n[lang][key]) {
-              el.innerHTML = i18n[lang][key];
-            }
-          });
-        }
-
-        // 语言切换按钮事件
-        document.querySelectorAll('.lang-btn').forEach(btn => {
-          btn.onclick = () => setLanguage(btn.dataset.lang);
-        });
 
         // 加载历史记录
         loadHistory();
