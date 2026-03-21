@@ -1447,13 +1447,13 @@
         return;
       }
 
-      // 检测是否在 Capacitor/Android 环境中
+      // 检测是否在 Capacitor/Android 环境中，或者访问 /app 路径（移动端扫码）
       const isCapacitor = window.Capacitor ||
-                          window.location.protocol === 'file:' ||
-                          window.location.hostname === 'localhost' && window.location.port === '';
+                          window.location.protocol === 'file:';
+      const isMobileApp = window.location.pathname === '/app' || window.location.pathname === '/app/';
 
-      if (isCapacitor) {
-        // Capacitor 环境：显示连接页面
+      if (isCapacitor || isMobileApp) {
+        // Capacitor 环境或移动端页面：显示扫码页面
         $('connecting').style.display = 'none';
         $('connect-page').classList.remove('hidden');
 
@@ -1464,7 +1464,7 @@
         // 加载历史记录
         loadHistory();
       } else {
-        // 浏览器环境：直接连接
+        // 桌面浏览器：直接连接
         connectSocket();
       }
     }
