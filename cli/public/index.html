@@ -628,7 +628,7 @@
 
   <div id="connecting" class="connecting">
     <div class="spinner"></div>
-    <div>连接中...</div>
+    <div>Connecting...</div>
   </div>
 
   <!-- 连接页面 (Capacitor App) - 扫码模式 -->
@@ -695,9 +695,9 @@
   <div id="login-page" class="login-container hidden">
     <div class="login-box">
       <div class="login-title">TakeLink</div>
-      <div class="login-subtitle">请输入访问密码</div>
-      <input type="password" id="password-input" class="login-input" placeholder="密码" autocomplete="off">
-      <button id="login-btn" class="login-btn">登录</button>
+      <div class="login-subtitle">Enter Access Password</div>
+      <input type="password" id="password-input" class="login-input" placeholder="Password" autocomplete="off">
+      <button id="login-btn" class="login-btn">Login</button>
       <div id="login-error" class="login-error"></div>
     </div>
   </div>
@@ -705,7 +705,7 @@
   <div id="list-page" class="page">
     <div class="list-container">
       <div id="process-list"></div>
-      <button class="new-btn" id="new-btn">+ 启动新终端</button>
+      <button class="new-btn" id="new-btn">+ New Terminal</button>
     </div>
   </div>
 
@@ -858,7 +858,7 @@
           socket.emit('ready');
           showPage($('list-page'));
         } else {
-          $('login-error').textContent = result.error || '认证失败';
+          $('login-error').textContent = result.error || 'Authentication failed';
           $('password-input').select();
         }
       });
@@ -1332,7 +1332,7 @@
         document.execCommand('copy');
         showToast('已复制');
       } catch (err) {
-        showToast('复制失败');
+        showToast('Copy failed');
       }
       textarea.style.left = '-9999px';
       textarea.style.opacity = '0';
@@ -1435,15 +1435,15 @@
     function init() {
       // 检查依赖
       if (typeof io === 'undefined') {
-        $('connecting').innerHTML = '<div style="color:#e74856">socket.io 加载失败</div>';
+        $('connecting').innerHTML = '<div style="color:#e74856">socket.io load failed</div>';
         return;
       }
       if (typeof Terminal === 'undefined') {
-        $('connecting').innerHTML = '<div style="color:#e74856">xterm.js 加载失败</div>';
+        $('connecting').innerHTML = '<div style="color:#e74856">xterm.js load failed</div>';
         return;
       }
       if (typeof FitAddon === 'undefined') {
-        $('connecting').innerHTML = '<div style="color:#e74856">FitAddon 加载失败</div>';
+        $('connecting').innerHTML = '<div style="color:#e74856">FitAddon load failed</div>';
         return;
       }
 
@@ -1588,7 +1588,7 @@
           }
         } catch(e) {
           console.error('扫码失败:', e);
-          $('connect-error').textContent = '扫码失败: ' + e.message;
+          $('connect-error').textContent = 'Scan failed: ' + e.message;
           $('scanner-view').classList.remove('active', 'native');
           // 恢复背景
           try {
@@ -1702,7 +1702,7 @@
 
       // 显示连接中状态
       $('scan-btn').disabled = true;
-      $('scan-btn').querySelector('.scan-btn-title').textContent = '连接中...';
+      $('scan-btn').querySelector('.scan-btn-title').textContent = 'Connecting...';
 
       // 保存到历史
       saveToHistory(serverUrl);
@@ -1711,9 +1711,9 @@
       try {
         connectSocket(serverUrl);
       } catch(e) {
-        $('connect-error').textContent = '连接失败: ' + e.message;
+        $('connect-error').textContent = 'Connection failed: ' + e.message;
         $('scan-btn').disabled = false;
-        $('scan-btn').querySelector('.scan-btn-title').textContent = '扫描二维码连接';
+        $('scan-btn').querySelector('.scan-btn-title').textContent = 'Scan QR Code to Connect';
       }
     }
 
@@ -1783,7 +1783,7 @@
         console.error('Socket 连接错误:', err);
         // 检查是否在连接页面
         if (!$('connect-page').classList.contains('hidden')) {
-          $('connect-error').textContent = '连接失败: ' + err.message;
+          $('connect-error').textContent = 'Connection failed: ' + err.message;
           // 恢复扫码按钮状态
           const scanBtn = $('scan-btn');
           if (scanBtn) {
@@ -1792,7 +1792,7 @@
             if (title) title.textContent = '扫描二维码连接';
           }
         } else {
-          $('connecting').innerHTML = '<div style="color:#e74856">连接失败: ' + err.message + '</div>';
+          $('connecting').innerHTML = '<div style="color:#e74856">Connection failed: ' + err.message + '</div>';
         }
       });
 
