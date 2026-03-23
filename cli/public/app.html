@@ -173,140 +173,135 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* 连接页面 (Capacitor App) - 扫码模式 */
+    /* 连接页面 (Capacitor App) - 新布局 */
     .connect-container {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: env(safe-area-inset-top, 60px) 24px env(safe-area-inset-bottom, 20px);
+      padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px);
     }
     .connect-container.hidden { display: none; }
 
-    /* Logo 区域 */
-    .connect-logo {
-      margin-top: 40px;
-      margin-bottom: 32px;
+    /* 顶部栏 */
+    .connect-header {
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
       align-items: center;
-    }
-    .connect-logo-icon {
-      width: 80px;
-      height: 80px;
-      border-radius: 24px;
-      background: rgba(59, 130, 246, 0.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 16px;
-    }
-    .connect-logo-icon span { font-size: 40px; }
-    .connect-title {
-      font-size: 32px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 4px;
-    }
-    .connect-subtitle {
-      font-size: 15px;
-      color: #6b7280;
-    }
-
-    /* 扫码按钮 */
-    .scan-btn {
-      width: 100%;
-      max-width: 300px;
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      border: none;
-      border-radius: 20px;
-      color: #fff;
-      padding: 28px 32px;
-      cursor: pointer;
-      margin-bottom: 32px;
-      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
-    }
-    .scan-btn:active { transform: scale(0.98); }
-    .scan-btn-icon {
-      width: 64px;
-      height: 64px;
-      border-radius: 32px;
-      background: rgba(255, 255, 255, 0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 12px;
-    }
-    .scan-btn-icon span { font-size: 32px; }
-    .scan-btn-title {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .scan-btn-hint {
-      font-size: 14px;
-      opacity: 0.7;
-    }
-
-    /* 手动输入区域 */
-    .manual-input-section {
-      width: 100%;
-      max-width: 300px;
+      padding: 12px 0;
       margin-bottom: 20px;
     }
-    .manual-divider {
+    .connect-header-left {
       display: flex;
       align-items: center;
-      margin: 16px 0;
+      gap: 12px;
     }
-    .manual-divider::before,
-    .manual-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: rgba(255, 255, 255, 0.1);
-    }
-    .manual-divider span {
-      padding: 0 12px;
-      font-size: 12px;
-      color: #6b7280;
-    }
-    .manual-input-row {
+    .connect-header-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(59, 130, 246, 0.2);
       display: flex;
-      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
     }
-    .manual-input {
-      flex: 1;
+    .connect-header-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .connect-header-scan {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(59, 130, 246, 0.2);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      cursor: pointer;
+    }
+    .connect-header-scan:active {
+      background: rgba(59, 130, 246, 0.4);
+    }
+
+    /* 地址输入行 */
+    .address-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 12px;
+      border-radius: 12px;
+      padding: 8px 12px;
+      margin-bottom: 16px;
+    }
+    .address-row:focus-within {
+      border-color: #3b82f6;
+    }
+    .address-protocol {
+      background: transparent;
+      border: none;
+      color: #6b7280;
+      font-size: 14px;
+      font-weight: 500;
+      outline: none;
+      width: 55px;
+      cursor: pointer;
+    }
+    .address-protocol:focus { color: #3b82f6; }
+    .address-separator {
+      color: #4b5563;
+      font-size: 14px;
+    }
+    .address-ip {
+      flex: 1;
+      min-width: 0;
+      background: transparent;
+      border: none;
       color: #fff;
+      font-size: 15px;
+      font-weight: 500;
+      outline: none;
+      text-align: center;
+    }
+    .address-ip::placeholder { color: #4b5563; }
+    .address-port {
+      width: 50px;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 500;
+      outline: none;
+      text-align: center;
+    }
+    .address-port::placeholder { color: #4b5563; }
+    .address-path {
+      width: 45px;
+      background: transparent;
+      border: none;
+      color: #6b7280;
       font-size: 14px;
       outline: none;
     }
-    .manual-input:focus {
-      border-color: #3b82f6;
-    }
-    .manual-input::placeholder {
-      color: #4b5563;
-    }
-    .connect-btn {
+    .address-connect {
       background: #3b82f6;
       border: none;
       border-radius: 8px;
-      padding: 12px 16px;
+      padding: 10px 16px;
       color: #fff;
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
       white-space: nowrap;
     }
-    .connect-btn:active {
-      background: #2563eb;
-    }
+    .address-connect:active { background: #2563eb; }
 
     /* 历史记录 */
     .history-section {
@@ -852,35 +847,29 @@
     <div>Connecting...</div>
   </div>
 
-  <!-- 连接页面 (Capacitor App) - 扫码模式 -->
+  <!-- 连接页面 (Capacitor App) - 新布局 -->
   <div id="connect-page" class="connect-container hidden">
-    <!-- Logo -->
-    <div class="connect-logo">
-      <div class="connect-logo-icon">
-        <span>🚀</span>
+    <!-- 顶部栏 -->
+    <div class="connect-header">
+      <div class="connect-header-left">
+        <div class="connect-header-logo">🚀</div>
+        <div class="connect-header-title">TakeLink</div>
       </div>
-      <div class="connect-title">TakeLink</div>
-      <div class="connect-subtitle">LAN Remote Terminal</div>
+      <button id="scan-btn" class="connect-header-scan" title="Scan QR Code" aria-label="Scan QR Code to connect">📷</button>
     </div>
 
-    <!-- 扫码按钮 -->
-    <button id="scan-btn" class="scan-btn">
-      <div class="scan-btn-icon">
-        <span>📷</span>
-      </div>
-      <div class="scan-btn-title">Scan QR Code to Connect</div>
-      <div class="scan-btn-hint">Tap to start scanning</div>
-    </button>
-
-    <!-- 手动输入区域 -->
-    <div class="manual-input-section">
-      <div class="manual-divider">
-        <span>or enter URL manually</span>
-      </div>
-      <div class="manual-input-row">
-        <input type="text" id="manual-url" class="manual-input" placeholder="http://192.168.1.5:8080">
-        <button id="connect-btn" class="connect-btn">Connect</button>
-      </div>
+    <!-- 地址输入行 -->
+    <div class="address-row">
+      <select id="addr-protocol" class="address-protocol">
+        <option value="http://">http://</option>
+        <option value="https://">https://</option>
+      </select>
+      <span class="address-separator"></span>
+      <input type="text" id="addr-ip" class="address-ip" placeholder="192.168.1.5" value="192.168.1.5" inputmode="decimal">
+      <span class="address-separator">:</span>
+      <input type="text" id="addr-port" class="address-port" placeholder="8080" value="8080" inputmode="numeric">
+      <input type="text" id="addr-path" class="address-path" value="/app" readonly>
+      <button id="connect-btn" class="address-connect">Connect</button>
     </div>
 
     <!-- 历史记录 -->
@@ -895,7 +884,7 @@
     <div class="connect-footer">
       <div class="connect-footer-text">
         Run TakeLink CLI on your computer<br>
-        Scan the QR code to connect
+        Scan QR code or enter address to connect
       </div>
     </div>
   </div>
@@ -997,10 +986,10 @@
 
   <!-- 长按菜单 -->
   <div class="context-menu" id="context-menu">
-    <div class="context-menu-item" data-action="paste"><span class="icon">📋</span>粘贴</div>
-    <div class="context-menu-item" data-action="copy"><span class="icon">📄</span>复制</div>
-    <div class="context-menu-item" data-action="selectall"><span class="icon">📝</span>全选</div>
-    <div class="context-menu-item" data-action="copyall"><span class="icon">📑</span>复制全部</div>
+    <div class="context-menu-item" data-action="paste"><span class="icon">📋</span>Paste</div>
+    <div class="context-menu-item" data-action="copy"><span class="icon">📄</span>Copy</div>
+    <div class="context-menu-item" data-action="selectall"><span class="icon">📝</span>Select All</div>
+    <div class="context-menu-item" data-action="copyall"><span class="icon">📑</span>Copy All</div>
   </div>
 
   <script src="socket.io.min.js"></script>
@@ -1292,7 +1281,7 @@
         btn.style.background = isCapsLock ? '#f59e0b' : '#374151';
         btn.style.borderColor = isCapsLock ? '#f59e0b' : '#374151';
       }
-      showToast(isCapsLock ? '大写锁定开启' : '大写锁定关闭');
+      showToast(isCapsLock ? 'Caps Lock ON' : 'Caps Lock OFF');
     }
 
     // 删除当前行（兼容 Unix 和 Windows）
@@ -1309,27 +1298,27 @@
     // 启动 OpenClaw TUI
     function startOpenClaw() {
       if (!currentId || !socket) {
-        showToast('请先选择一个终端');
+        showToast('Please select a terminal first');
         return;
       }
       // 先清空当前行，然后执行 openclaw tui
       deleteLine();
       setTimeout(() => {
         socket.emit('terminal-input', { id: currentId, data: 'openclaw tui\r' });
-        showToast('启动 OpenClaw TUI...');
+        showToast('Starting OpenClaw TUI...');
       }, 100);
     }
 
     // 启动 Claude CLI
     function startClaude() {
       if (!currentId || !socket) {
-        showToast('请先选择一个终端');
+        showToast('Please select a terminal first');
         return;
       }
       deleteLine();
       setTimeout(() => {
         socket.emit('terminal-input', { id: currentId, data: 'claude\r' });
-        showToast('启动 Claude CLI...');
+        showToast('Starting Claude CLI...');
       }, 100);
     }
 
@@ -1349,7 +1338,7 @@
           const text = await navigator.clipboard.readText();
           if (text) {
             socket.emit('terminal-input', { id: currentId, data: text });
-            showToast('已粘贴 ' + text.length + ' 字符');
+            showToast('Pasted ' + text.length + ' chars');
             return;
           }
         } catch (err) {
@@ -1367,7 +1356,7 @@
       const isMobile = 'ontouchstart' in window || window.innerWidth <= 768;
       const textarea = $('clipboard-textarea');
       textarea.value = '';
-      textarea.placeholder = isMobile ? '长按此处粘贴...' : '按 Ctrl+V 粘贴...';
+      textarea.placeholder = isMobile ? 'Long press here to paste...' : 'Press Ctrl+V to paste...';
       textarea.style.position = 'fixed';
       textarea.style.left = '50%';
       textarea.style.top = '35%';
@@ -1406,8 +1395,8 @@
         document.body.appendChild(tipEl);
       }
       tipEl.innerHTML = isMobile
-        ? '长按输入框 → 粘贴'
-        : '粘贴后自动发送 / <span style="color:#666">Esc取消</span>';
+        ? 'Long press input → Paste'
+        : 'Auto-send after paste / <span style="color:#666">Esc to cancel</span>';
       tipEl.style.display = 'block';
 
       // 创建按钮容器
@@ -1435,7 +1424,7 @@
           color: #fff;
           font-size: 16px;
           cursor: pointer;
-        ">发送</button>
+        ">Send</button>
         <button id="paste-cancel-btn" style="
           background: #444;
           border: none;
@@ -1444,7 +1433,7 @@
           color: #ccc;
           font-size: 16px;
           cursor: pointer;
-        ">取消</button>
+        ">Cancel</button>
       `;
       btnContainer.style.display = 'flex';
 
@@ -1454,7 +1443,7 @@
         const text = textarea.value;
         if (text && currentId && socket) {
           socket.emit('terminal-input', { id: currentId, data: text });
-          showToast('已粘贴 ' + text.length + ' 字符');
+          showToast('Pasted ' + text.length + ' chars');
         }
         hidePasteDialog();
       };
@@ -1468,7 +1457,7 @@
         const text = textarea.value;
         if (text && currentId && socket) {
           socket.emit('terminal-input', { id: currentId, data: text });
-          showToast('已粘贴 ' + text.length + ' 字符');
+          showToast('Pasted ' + text.length + ' chars');
           hidePasteDialog();
         }
       };
@@ -1537,7 +1526,7 @@
         copyToClipboard(text);
       } else {
         // 如果没有选中，提示用户先选择
-        showToast('请先在终端中选择文本');
+        showToast('Please select text in terminal first');
       }
     }
 
@@ -1547,7 +1536,7 @@
 
       try {
         await navigator.clipboard.writeText(text);
-        showToast('已复制');
+        showToast('Copied');
         return;
       } catch (err) {
         console.warn('Clipboard write 失败:', err);
@@ -1562,7 +1551,7 @@
       textarea.select();
       try {
         document.execCommand('copy');
-        showToast('已复制');
+        showToast('Copied');
       } catch (err) {
         showToast('Copy failed');
       }
@@ -1574,7 +1563,7 @@
     function selectAllTerminal() {
       if (!term) return;
       term.selectAll();
-      showToast('已全选');
+      showToast('All selected');
     }
 
     // Toast 提示
@@ -1632,7 +1621,7 @@
             if (selection) {
               copyToClipboard(selection);
             } else {
-              showToast('请先选择文本');
+              showToast('Please select text first');
             }
           }
           break;
@@ -1712,33 +1701,54 @@
           $('scan-btn').onclick = startScanner;
           $('scanner-close').onclick = stopScanner;
 
-          // 手动连接按钮事件
+          // 连接按钮事件 - 从分段输入拼接 URL
           $('connect-btn').onclick = () => {
-            let url = $('manual-url').value.trim();
-            if (!url) {
-              $('connect-error').textContent = 'Please enter server URL';
+            const protocol = $('addr-protocol').value;
+            const ip = $('addr-ip').value.trim();
+            const port = $('addr-port').value.trim();
+
+            // IP 验证
+            if (!ip) {
+              $('connect-error').textContent = 'Please enter IP address';
+              $('addr-ip').focus();
               return;
             }
-            // 去除路径部分（如 /app），只保留 origin
-            if (url.includes('/app')) {
-              url = url.replace(/\/app.*$/, '');
-            }
-            // 验证 URL 格式
-            try {
-              const parsed = new URL(url);
-              url = parsed.origin;
-            } catch(e) {
-              $('connect-error').textContent = 'Invalid URL format (e.g. http://192.168.1.5:8080)';
+            const ipParts = ip.split('.');
+            const isValidIP = ipParts.length === 4 && ipParts.every(p => {
+              const n = parseInt(p, 10);
+              return !isNaN(n) && n >= 0 && n <= 255 && p === String(n);
+            });
+            if (!isValidIP) {
+              $('connect-error').textContent = 'Invalid IP format (e.g. 192.168.1.5)';
+              $('addr-ip').focus();
               return;
             }
+
+            // 端口验证
+            if (!port) {
+              $('connect-error').textContent = 'Please enter port';
+              $('addr-port').focus();
+              return;
+            }
+            const portNum = parseInt(port, 10);
+            if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+              $('connect-error').textContent = 'Port must be 1-65535';
+              $('addr-port').focus();
+              return;
+            }
+
+            // 拼接 URL（去掉 /app 路径，只保留 origin）
+            const url = protocol + ip + ':' + port;
+            $('connect-error').textContent = '';
             connectToServer(url);
           };
 
           // 回车键连接
-          $('manual-url').onkeydown = (e) => {
-            if (e.key === 'Enter') {
-              $('connect-btn').click();
-            }
+          $('addr-ip').onkeydown = (e) => {
+            if (e.key === 'Enter') { $('addr-port').focus(); }
+          };
+          $('addr-port').onkeydown = (e) => {
+            if (e.key === 'Enter') { $('connect-btn').click(); }
           };
 
           // 加载历史记录
@@ -1818,20 +1828,31 @@
 
     function formatHistoryTime(timestamp) {
       const diff = Date.now() - timestamp;
-      if (diff < 60000) return '刚刚';
-      if (diff < 3600000) return Math.floor(diff / 60000) + ' 分钟前';
-      if (diff < 86400000) return Math.floor(diff / 3600000) + ' 小时前';
-      return Math.floor(diff / 86400000) + ' 天前';
+      if (diff < 60000) return 'Just now';
+      if (diff < 3600000) return Math.floor(diff / 60000) + ' min ago';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + ' hours ago';
+      return Math.floor(diff / 86400000) + ' days ago';
     }
 
     function connectFromHistory(url) {
-      connectToServer(url);
+      // 解析 URL 并填充分段输入框（不自动连接，让用户确认）
+      try {
+        const u = new URL(url);
+        $('addr-protocol').value = u.protocol + '//';
+        $('addr-ip').value = u.hostname;
+        $('addr-port').value = u.port || '8080';
+        $('connect-error').textContent = '';
+        $('addr-ip').focus();
+      } catch(e) {
+        // URL 解析失败时直接连接
+        connectToServer(url);
+      }
     }
 
     function deleteHistory(e, url) {
       e.preventDefault();
       e.stopPropagation();
-      if (confirm('确定删除此连接记录吗？')) {
+      if (confirm('Delete this connection record?')) {
         let history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
         history = history.filter(h => h.url !== url);
         localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
@@ -1854,10 +1875,12 @@
           // 请求权限
           const status = await BarcodeScanner.checkPermission({ force: true });
           if (!status.granted) {
-            $('connect-error').textContent = '需要相机权限才能扫描二维码';
+            $('connect-error').textContent = 'Camera permission required for QR scanning';
             return;
           }
 
+          // 隐藏连接页面（避免遮挡扫码视图）
+          $('connect-page').classList.add('hidden');
           // 显示扫描视图（添加 native class 隐藏 video 元素）
           $('scanner-view').classList.add('active', 'native');
           $('connect-error').textContent = '';
@@ -1889,9 +1912,9 @@
           // HTTP 环境或不支持的浏览器
           const isHTTPS = window.location.protocol === 'https:';
           if (!isHTTPS) {
-            $('connect-error').innerHTML = '⚠️ HTTP 环境无法使用摄像头<br><span style="font-size:12px;color:#888">请使用下方手动输入地址</span>';
+            $('connect-error').innerHTML = '⚠️ Camera unavailable on HTTP<br><span style="font-size:12px;color:#888">Please enter address manually below</span>';
           } else {
-            $('connect-error').textContent = '此浏览器不支持摄像头访问';
+            $('connect-error').textContent = 'Camera access not supported in this browser';
           }
           // 自动聚焦到手动输入框
           $('manual-url').focus();
@@ -1908,6 +1931,8 @@
           video.srcObject = stream;
           video.play();
 
+          // 隐藏连接页面（避免遮挡扫码视图）
+          $('connect-page').classList.add('hidden');
           $('scanner-view').classList.add('active');
           $('connect-error').textContent = '';
 
@@ -1915,15 +1940,15 @@
           scanQRCode();
         } catch(e) {
           // 权限被拒绝或其他错误
-          let errorMsg = '无法访问相机';
+          let errorMsg = 'Cannot access camera';
           if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-            errorMsg = '相机权限被拒绝，请在浏览器设置中允许访问';
+            errorMsg = 'Camera permission denied, please allow in browser settings';
           } else if (e.name === 'NotFoundError') {
-            errorMsg = '未检测到摄像头设备';
+            errorMsg = 'No camera device detected';
           } else if (e.name === 'NotReadableError') {
-            errorMsg = '摄像头被其他应用占用';
+            errorMsg = 'Camera is in use by another application';
           }
-          $('connect-error').innerHTML = '⚠️ ' + errorMsg + '<br><span style="font-size:12px;color:#888">请使用下方手动输入地址</span>';
+          $('connect-error').innerHTML = '⚠️ ' + errorMsg + '<br><span style="font-size:12px;color:#888">Please enter address manually below</span>';
           // 自动聚焦到手动输入框
           $('manual-url').focus();
         }
@@ -1944,6 +1969,8 @@
         scannerStream = null;
       }
       $('scanner-view').classList.remove('active', 'native');
+      // 恢复连接页面显示
+      $('connect-page').classList.remove('hidden');
     }
 
     async function scanQRCode() {
@@ -1979,13 +2006,14 @@
       requestAnimationFrame(scanQRCode);
     }
 
-    // 重置扫码按钮状态
+    // 重置扫码按钮和连接按钮状态
     function resetScanButton() {
       const scanBtn = $('scan-btn');
-      if (scanBtn) {
-        scanBtn.disabled = false;
-        const title = scanBtn.querySelector('.scan-btn-title');
-        if (title) title.textContent = '扫描二维码连接';
+      if (scanBtn) scanBtn.disabled = false;
+      const connectBtn = $('connect-btn');
+      if (connectBtn) {
+        connectBtn.disabled = false;
+        connectBtn.textContent = 'Connect';
       }
     }
 
@@ -1996,14 +2024,23 @@
       // 支持格式: http://192.168.1.100:8080/app 或纯 URL
       let url = data;
       if (data.includes('/app')) {
-        url = data.replace(/\/app$/, '');
+        url = data.replace(/\/app.*$/, '');
       }
 
       // 验证 URL 格式
       if (url.startsWith('http://') || url.startsWith('https://')) {
+        // 填充分段输入框
+        try {
+          const u = new URL(url);
+          $('addr-protocol').value = u.protocol + '//';
+          $('addr-ip').value = u.hostname;
+          $('addr-port').value = u.port || '8080';
+        } catch(e) {}
         connectToServer(url);
       } else {
-        $('connect-error').textContent = '无效二维码，请扫描 TakeLink 显示的二维码';
+        $('connect-error').textContent = 'Invalid QR code, please scan TakeLink QR';
+        $('connect-page').classList.remove('hidden');
+        resetScanButton();
       }
     }
 
@@ -2012,8 +2049,11 @@
       $('connect-error').textContent = '';
 
       // 显示连接中状态
-      $('scan-btn').disabled = true;
-      $('scan-btn').querySelector('.scan-btn-title').textContent = 'Connecting...';
+      const connectBtn = $('connect-btn');
+      if (connectBtn) {
+        connectBtn.disabled = true;
+        connectBtn.textContent = '...';
+      }
 
       // 保存到历史
       saveToHistory(serverUrl);
@@ -2023,8 +2063,7 @@
         connectSocket(serverUrl);
       } catch(e) {
         $('connect-error').textContent = 'Connection failed: ' + e.message;
-        $('scan-btn').disabled = false;
-        $('scan-btn').querySelector('.scan-btn-title').textContent = 'Scan QR Code to Connect';
+        resetScanButton();
       }
     }
 
@@ -2099,13 +2138,8 @@
         // 检查是否在连接页面
         if (!$('connect-page').classList.contains('hidden')) {
           $('connect-error').textContent = 'Connection failed: ' + err.message;
-          // 恢复扫码按钮状态
-          const scanBtn = $('scan-btn');
-          if (scanBtn) {
-            scanBtn.disabled = false;
-            const title = scanBtn.querySelector('.scan-btn-title');
-            if (title) title.textContent = '扫描二维码连接';
-          }
+          // 恢复按钮状态
+          resetScanButton();
         } else {
           $('connecting').innerHTML = '<div style="color:#e74856">Connection failed: ' + err.message + '</div>';
         }
@@ -2206,7 +2240,7 @@
           if (currentId && socket) {
             // 发送 agent team 命令
             socket.emit('terminal-input', { id: currentId, data: '/claude-flow swarm init\r' });
-            showToast('启动 Agent Team...');
+            showToast('Starting Agent Team...');
           }
         });
       }
