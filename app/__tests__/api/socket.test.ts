@@ -1,10 +1,10 @@
 /**
  * ApiClient (socket.ts) 单元测试
+ * 匹配服务端 Socket.IO 事件协议
  */
 
-// Mock socket.io-client - 在 factory 内部完成所有 mock 逻辑
+// Mock socket.io-client
 jest.mock('socket.io-client', () => {
-  // 使用简单的自定义 EventEmitter 替代 Node.js EventEmitter
   class MockEmitter {
     private handlers: Record<string, Function[]> = {};
     on(event: string, handler: Function) {
@@ -27,18 +27,15 @@ jest.mock('socket.io-client', () => {
     connected: false,
     on: jest.fn((event: string, handler: Function) => mockEmitter.on(event, handler)),
     emit: jest.fn(),
-    emitWithAck: jest.fn(),
     disconnect: jest.fn(() => {
       mockSocketObj.connected = false;
-      mockEmitter.emit('disconnect');
+      mockEmitter.emit('disconnect', 'io client disconnect');
     }),
     connect: jest.fn(),
-    // 内部辅助：触发事件
     _trigger: (event: string, ...args: any[]) => mockEmitter.emit(event, ...args),
     _clear: () => mockEmitter.removeAllListeners(),
   };
 
-  // 挂载到 global 方便测试访问
   (global as any).__mockSocket = mockSocketObj;
 
   const mockIoFn = jest.fn(() => {
@@ -51,33 +48,26 @@ jest.mock('socket.io-client', () => {
 
 import { api } from '../../api/socket';
 
-// 获取 mock socket 的辅助函数
 function getMockSocket() {
   return (global as any).__mockSocket;
 }
 
-// 触发 socket 事件
 function emitSocketEvent(event: string, ...args: any[]) {
   getMockSocket()._trigger(event, ...args);
 }
 
-// 连接并等待完成
-async function connectAndWait(url = 'http://localhost:8080') {
+async function connectAndWait(url = 'http://192.168.1.5:8080') {
   const promise = api.connect(url);
-  // 模拟 socket.io 连接成功：设置 connected 并触发事件
   getMockSocket().connected = true;
   emitSocketEvent('connect');
   return promise;
 }
-
-// @ts-ignore - 旧 API 兼容性测试，需迁移
 
 beforeEach(() => {
   const ms = getMockSocket();
   ms._clear();
   ms.on.mockClear();
   ms.emit.mockClear();
-  ms.emitWithAck.mockClear();
   ms.disconnect.mockClear();
   ms.connected = false;
 
@@ -91,122 +81,232 @@ describe('ApiClient', () => {
       expect(id).toBe('mock-socket-id');
     });
 
-    it('应该传入正确的传输配置', async () => {
-      await connectAndWait();
+    it('应该提取 origin 作为连接地址（去掉路径）', async () => {
+      await connectAndWait('http://192.168.1.5:8080/app');
       const { io } = require('socket.io-client');
-      expect(io).toHaveBeenCalledWith('http://localhost:8080', expect.objectContaining({
-        transports: ['websocket'],
+      expect(io).toHaveBeenCalledWith('http://192.168.1.5:8080', expect.objectContaining({
+        transports: ['websocket', 'polling'],
       }));
     });
 
-    it('应该注册事件处理器', async () => {
+    it('应该配置重连参数', async () => {
+      await connectAndWait();
+      const { io } = require('socket.io-client');
+      expect(io).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5,
+        timeout: 15000,
+      }));
+    });
+
+    it('应该注册服务端事件处理器', async () => {
       await connectAndWait();
       const ms = getMockSocket();
-      expect(ms.on).toHaveBeenCalledWith('session-created', expect.any(Function));
-      expect(ms.on).toHaveBeenCalledWith('message', expect.any(Function));
-      expect(ms.on).toHaveBeenCalledWith('tool-update', expect.any(Function));
+      expect(ms.on).toHaveBeenCalledWith('client-info', expect.any(Function));
+      expect(ms.on).toHaveBeenCalledWith('processes-list', expect.any(Function));
+      expect(ms.on).toHaveBeenCalledWith('process-started', expect.any(Function));
+      expect(ms.on).toHaveBeenCalledWith('claude-output', expect.any(Function));
+      expect(ms.on).toHaveBeenCalledWith('auth-required', expect.any(Function));
+    });
+
+    it('连接失败应该 reject', async () => {
+      const promise = api.connect('http://bad-host:8080');
+      emitSocketEvent('connect_error', new Error('timeout'));
+      await expect(promise).rejects.toThrow('timeout');
     });
   });
 
-  describe('rpc', () => {
-    it('应该通过 emitWithAck 发送 RPC 请求', async () => {
+  describe('ready', () => {
+    it('应该发送 ready 事件', async () => {
       await connectAndWait();
-      const ms = getMockSocket();
-
-      ms.emitWithAck.mockResolvedValue({ data: { id: 'test' } });
-      const result = await api.rpc('createSession', { cwd: '/test' });
-
-      expect(ms.emitWithAck).toHaveBeenCalledWith('rpc', {
-        method: 'createSession',
-        params: { cwd: '/test' },
-      });
-      expect(result).toEqual({ id: 'test' });
+      api.ready();
+      expect(getMockSocket().emit).toHaveBeenCalledWith('ready');
     });
 
-    it('RPC 错误应该抛出异常', async () => {
-      await connectAndWait();
-      const ms = getMockSocket();
-
-      ms.emitWithAck.mockResolvedValue({ error: 'not found' });
-      await expect(api.rpc('getSession')).rejects.toThrow('not found');
-    });
-
-    it('未连接时调用 rpc 应该抛出异常', async () => {
-      api.disconnect();
-      await expect(api.rpc('test')).rejects.toThrow();
+    it('未连接时不应该发送', () => {
+      api.ready();
+      // io mock 未调用则 emit 未被调用
     });
   });
 
-  describe('sendMessage', () => {
-    it('应该调用 rpc sendMessage', async () => {
+  describe('startProcess', () => {
+    it('应该发送 start-process 事件', async () => {
       await connectAndWait();
-      const ms = getMockSocket();
+      api.startProcess('/home/user');
+      expect(getMockSocket().emit).toHaveBeenCalledWith('start-process', { cwd: '/home/user' });
+    });
 
-      const mockMsg = { kind: 'agent', id: 'r1', text: 'done', createdAt: 1 };
-      ms.emitWithAck.mockResolvedValue({ data: mockMsg });
-
-      const result = await api.sendMessage('s1', 'hello');
-      expect(ms.emitWithAck).toHaveBeenCalledWith('rpc', {
-        method: 'sendMessage',
-        params: { sessionId: 's1', text: 'hello' },
-      });
-      expect(result).toEqual(mockMsg);
+    it('不带参数也应该发送', async () => {
+      await connectAndWait();
+      api.startProcess();
+      expect(getMockSocket().emit).toHaveBeenCalledWith('start-process', { cwd: undefined });
     });
   });
 
-  describe('createSession', () => {
-    it('应该调用 rpc createSession', async () => {
+  describe('sendTerminalInput', () => {
+    it('应该发送 terminal-input 事件', async () => {
       await connectAndWait();
-      const ms = getMockSocket();
 
-      const mockSession = { id: 's1', cwd: '/', projectName: 'p', messages: [], createdAt: 1 };
-      ms.emitWithAck.mockResolvedValue({ data: mockSession });
-
-      const result = await api.createSession('/');
-      expect(ms.emitWithAck).toHaveBeenCalledWith('rpc', {
-        method: 'createSession',
-        params: { cwd: '/' },
+      // 先模拟 process-started 设置 currentProcessId
+      emitSocketEvent('process-started', {
+        id: 'proc-1',
+        cwd: '/test',
+        projectName: 'test-project',
       });
-      expect(result).toEqual(mockSession);
+
+      api.sendTerminalInput('ls -la\n');
+      expect(getMockSocket().emit).toHaveBeenCalledWith('terminal-input', {
+        id: 'proc-1',
+        data: 'ls -la\n',
+      });
+    });
+
+    it('没有 processId 时不应发送', async () => {
+      await connectAndWait();
+      getMockSocket().emit.mockClear();
+      api.sendTerminalInput('test\n');
+      expect(getMockSocket().emit).not.toHaveBeenCalledWith('terminal-input', expect.anything());
+    });
+  });
+
+  describe('resize', () => {
+    it('应该发送 resize 事件', async () => {
+      await connectAndWait();
+
+      emitSocketEvent('process-started', {
+        id: 'proc-1', cwd: '/', projectName: 'test',
+      });
+
+      api.resize(80, 24);
+      expect(getMockSocket().emit).toHaveBeenCalledWith('resize', {
+        id: 'proc-1',
+        cols: 80,
+        rows: 24,
+      });
+    });
+  });
+
+  describe('auth', () => {
+    it('认证成功应该返回 success', async () => {
+      await connectAndWait();
+
+      getMockSocket().emit.mockImplementation((event: string, password: string, cb: Function) => {
+        if (event === 'auth') cb({ success: true, token: 'tok123' });
+      });
+
+      const result = await api.auth('mypassword');
+      expect(result).toEqual({ success: true, token: 'tok123' });
+    });
+
+    it('认证失败应该返回错误', async () => {
+      await connectAndWait();
+
+      getMockSocket().emit.mockImplementation((event: string, password: string, cb: Function) => {
+        if (event === 'auth') cb({ success: false, error: 'wrong password' });
+      });
+
+      const result = await api.auth('wrong');
+      expect(result).toEqual({ success: false, error: 'wrong password' });
+    });
+
+    it('未连接时认证应返回错误', async () => {
+      const result = await api.auth('test');
+      expect(result).toEqual({ success: false, error: '未连接' });
     });
   });
 
   describe('subscribe', () => {
-    it('应该接收 session-created 事件', async () => {
+    it('应该接收 client-info 事件', async () => {
       await connectAndWait();
       const listener = jest.fn();
       api.subscribe(listener);
 
-      const session = { id: 's1', cwd: '/', projectName: 'p', messages: [], createdAt: 1 };
-      emitSocketEvent('session-created', session);
-
-      expect(listener).toHaveBeenCalledWith({ type: 'session-created', session });
-    });
-
-    it('应该接收 message 事件', async () => {
-      await connectAndWait();
-      const listener = jest.fn();
-      api.subscribe(listener);
-
-      const msg = { kind: 'user', id: 'm1', text: 'hi', status: 'sent', createdAt: 1 };
-      emitSocketEvent('message', { sessionId: 's1', message: msg });
-
+      emitSocketEvent('client-info', { ip: '192.168.1.100' });
       expect(listener).toHaveBeenCalledWith({
-        type: 'message', sessionId: 's1', message: msg,
+        type: 'client-info',
+        info: { ip: '192.168.1.100' },
       });
     });
 
-    it('应该接收 tool-update 事件', async () => {
+    it('应该接收 process-started 事件', async () => {
       await connectAndWait();
       const listener = jest.fn();
       api.subscribe(listener);
 
-      emitSocketEvent('tool-update', {
-        sessionId: 's1', toolId: 't1', status: 'success', result: 'ok',
+      emitSocketEvent('process-started', {
+        id: 'p1', cwd: '/home', projectName: 'myapp',
       });
 
       expect(listener).toHaveBeenCalledWith({
-        type: 'tool-update', sessionId: 's1', toolId: 't1', status: 'success', result: 'ok',
+        type: 'process-started',
+        session: {
+          id: 'p1',
+          cwd: '/home',
+          projectName: 'myapp',
+          messages: [],
+          createdAt: expect.any(Number),
+        },
+      });
+    });
+
+    it('应该接收 terminal-output (claude-output) 事件', async () => {
+      await connectAndWait();
+      const listener = jest.fn();
+      api.subscribe(listener);
+
+      emitSocketEvent('claude-output', { id: 'p1', output: 'Hello World' });
+
+      expect(listener).toHaveBeenCalledWith({
+        type: 'terminal-output',
+        processId: 'p1',
+        output: 'Hello World',
+      });
+    });
+
+    it('应该接收 processes-list 事件', async () => {
+      await connectAndWait();
+      const listener = jest.fn();
+      api.subscribe(listener);
+
+      const processes = [
+        { id: 'p1', cwd: '/', projectName: 'a', createdAt: 1 },
+      ];
+      emitSocketEvent('processes-list', processes);
+
+      expect(listener).toHaveBeenCalledWith({
+        type: 'processes-list',
+        processes,
+      });
+    });
+
+    it('应该接收 auth-required 事件', async () => {
+      await connectAndWait();
+      const listener = jest.fn();
+      api.subscribe(listener);
+
+      emitSocketEvent('auth-required', { required: true });
+      expect(listener).toHaveBeenCalledWith({ type: 'auth-required' });
+    });
+
+    it('auth-required 为 false 时不应该触发', async () => {
+      await connectAndWait();
+      const listener = jest.fn();
+      api.subscribe(listener);
+
+      emitSocketEvent('auth-required', { required: false });
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it('应该接收 disconnected 事件', async () => {
+      await connectAndWait();
+      const listener = jest.fn();
+      api.subscribe(listener);
+
+      emitSocketEvent('disconnect', 'transport close');
+      expect(listener).toHaveBeenCalledWith({
+        type: 'disconnected',
+        reason: 'transport close',
       });
     });
 
@@ -214,7 +314,7 @@ describe('ApiClient', () => {
       await connectAndWait();
       const listener = jest.fn();
       api.subscribe(listener)();
-      emitSocketEvent('session-created', {});
+      emitSocketEvent('process-started', { id: 'p1', cwd: '/', projectName: 't' });
       expect(listener).not.toHaveBeenCalled();
     });
 
@@ -225,7 +325,7 @@ describe('ApiClient', () => {
       api.subscribe(l1);
       api.subscribe(l2);
 
-      emitSocketEvent('session-updated', { id: 's1' });
+      emitSocketEvent('processes-updated', []);
       expect(l1).toHaveBeenCalled();
       expect(l2).toHaveBeenCalled();
     });
@@ -241,6 +341,15 @@ describe('ApiClient', () => {
     it('重复 disconnect 不应该报错', () => {
       expect(() => api.disconnect()).not.toThrow();
     });
+
+    it('断开后 processId 应清空', async () => {
+      await connectAndWait();
+      emitSocketEvent('process-started', { id: 'p1', cwd: '/', projectName: 't' });
+      expect(api.processId).toBe('p1');
+
+      api.disconnect();
+      expect(api.processId).toBeNull();
+    });
   });
 
   describe('connected getter', () => {
@@ -252,6 +361,18 @@ describe('ApiClient', () => {
     it('连接后返回 true', async () => {
       await connectAndWait();
       expect(api.connected).toBe(true);
+    });
+  });
+
+  describe('processId getter', () => {
+    it('初始为 null', () => {
+      expect(api.processId).toBeNull();
+    });
+
+    it('process-started 后更新', async () => {
+      await connectAndWait();
+      emitSocketEvent('process-started', { id: 'abc', cwd: '/', projectName: 't' });
+      expect(api.processId).toBe('abc');
     });
   });
 });
