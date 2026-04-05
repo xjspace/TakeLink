@@ -1,5 +1,19 @@
 apply plugin: 'com.android.application'
 
+// 从 app/package.json 读取版本号
+def appPackageJson = new File(rootProject.projectDir.parent, 'app/package.json')
+def versionInfo = [:]
+if (appPackageJson.exists()) {
+    def json = new groovy.json.JsonSlurper().parseText(appPackageJson.text)
+    versionInfo.name = json.version ?: "1.0.0"
+    // versionCode: 将 "1.2.3" 转为整数 10203
+    def parts = versionInfo.name.split('\\.').collect { it.toInteger() }
+    versionInfo.code = (parts[0] ?: 0) * 10000 + (parts[1] ?: 0) * 100 + (parts[2] ?: 0)
+} else {
+    versionInfo.name = "1.0.0"
+    versionInfo.code = 1
+}
+
 android {
     namespace "com.takelink.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +21,8 @@ android {
         applicationId "com.takelink.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode versionInfo.code
+        versionName versionInfo.name
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
