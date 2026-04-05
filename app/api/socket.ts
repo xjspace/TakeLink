@@ -15,24 +15,34 @@ class ApiClient {
   connect(url: string): Promise<string> {
     return new Promise((resolve, reject) => {
       this.socket = io(url, {
-        transports: ['websocket'],
+        // 优先 WebSocket，失败则降级到 HTTP 长轮询
+        transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         reconnectionAttempts: Infinity,
+        // 增加超时时间
+        timeout: 20000,
       });
 
       this.socket.on('connect', () => {
-        console.log('[API] 已连接');
         resolve(this.socket!.id || 'connected');
       });
 
-      this.socket.on('connect_error', (err) => {
-        console.log('[API] 连接错误:', err.message);
+      this.socket.on('connect_error', (err: any) => {
+        // 提供更详细的错误信息
+        const errorInfo = {
+          message: err.message,
+          type: err.type,
+          description: err.description,
+          context: err.context,
+        };
+        console.log('[API] 连接错误详情:', JSON.stringify(errorInfo));
+        reject(err);
       });
 
       this.socket.on('disconnect', () => {
-        console.log('[API] 已断开');
+        // 连接断开
       });
 
       // 注册事件监听

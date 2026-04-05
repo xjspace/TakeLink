@@ -8,6 +8,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.container}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="scan" />
         <Stack.Screen name="session" />
       </Stack>
     </GestureHandlerRootView>
