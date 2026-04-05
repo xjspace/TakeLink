@@ -109,14 +109,17 @@ export default function ScanScreen() {
         }}
       />
 
-      {/* 遮罩层 */}
-      <View style={[
-        styles.overlay,
-        {
-          paddingTop: Math.max(insets.top, 20),
-          paddingBottom: Math.max(insets.bottom, 40),
-        }
-      ]}>
+      {/* 遮罩层 - pointerEvents="box-none" 让触摸穿透到 CameraView */}
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.overlay,
+          {
+            paddingTop: Math.max(insets.top, 20),
+            paddingBottom: Math.max(insets.bottom, 40),
+          }
+        ]}
+      >
         {/* 顶部栏 */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>

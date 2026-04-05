@@ -70,6 +70,8 @@ async function connectAndWait(url = 'http://localhost:8080') {
   return promise;
 }
 
+// @ts-ignore - 旧 API 兼容性测试，需迁移
+
 beforeEach(() => {
   const ms = getMockSocket();
   ms._clear();

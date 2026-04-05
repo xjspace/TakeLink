@@ -1,148 +1,92 @@
 /**
- * 会话页面 v2
- * 改进：打字指示器、头部导航、空状态、断线反馈
+ * 会话页面 - 终端交互
+ * 匹配服务端事件协议：start-process → terminal-input → claude-output
  */
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Animated,
-  Easing,
+  FlatList,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { api } from '../api/socket';
-import { useChatStore } from '../store/chatStore';
-import { ChatList } from '../components/ChatList';
-import { ChatInput } from '../components/ChatInput';
-import { Session, Message } from '../types/message';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// 空状态提示
-const QUICK_TIPS = [
-  { icon: '💻', text: '输入命令来控制远程终端' },
-  { icon: '🔍', text: '试试 "查看当前目录"' },
-  { icon: '📝', text: '可以发送自然语言指令' },
-];
+interface TerminalLine {
+  id: string;
+  text: string;
+  timestamp: number;
+}
 
 export default function SessionScreen() {
   const { url } = useLocalSearchParams<{ url: string }>();
+  const insets = useSafeAreaInsets();
+  const [connected, setConnected] = useState(false);
+  const [connecting, setConnecting] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [output, setOutput] = useState<TerminalLine[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [processStarted, setProcessStarted] = useState(false);
+  const outputCounter = useRef(0);
+  const flatListRef = useRef<FlatList>(null);
+  const mounted = useRef(true);
 
-  // Store
-  const {
-    connected,
-    connecting,
-    setConnected,
-    setConnecting,
-    createSession,
-    getCurrentSession,
-    getMessages,
-    addMessage,
-    updateToolStatus,
-  } = useChatStore();
-
-  const session = getCurrentSession();
-  const messages = getMessages();
-  const [sending, setSending] = useState(false);
-  const [agentTyping, setAgentTyping] = useState(false);
-  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // 打字指示器动画
-  const dot1 = useState(new Animated.Value(0))[0];
-  const dot2 = useState(new Animated.Value(0))[0];
-  const dot3 = useState(new Animated.Value(0))[0];
-
-  // 启动打字动画
-  useEffect(() => {
-    if (!agentTyping) return;
-
-    const animate = (dot: Animated.Value, delay: number) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(dot, {
-            toValue: 1,
-            duration: 300,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(dot, {
-            toValue: 0,
-            duration: 300,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ])
-      );
-
-    const anim = Animated.parallel([
-      animate(dot1, 0),
-      animate(dot2, 150),
-      animate(dot3, 300),
-    ]);
-    anim.start();
-
-    return () => { anim.stop(); };
-  }, [agentTyping]);
-
-  // 连接服务器
+  // 连接并启动终端
   useEffect(() => {
     if (!url) {
       router.back();
       return;
     }
 
-    let mounted = true;
-
     const connectAndInit = async () => {
       try {
         setConnecting(true);
-        await api.connect(url as string);
-
-        if (!mounted) return;
+        setError(null);
+        await api.connect(decodeURIComponent(url));
+        if (!mounted.current) return;
 
         setConnected(true);
+        setConnecting(false);
 
-        // 订阅事件
+        // 订阅服务端事件
         const unsubscribe = api.subscribe((event) => {
-          if (!mounted) return;
+          if (!mounted.current) return;
 
           switch (event.type) {
-            case 'session-created':
-              createSession(event.session);
+            case 'terminal-output':
+              appendOutput(event.output);
               break;
-            case 'message':
-              addMessage(event.sessionId, event.message);
-              // Agent 回复结束
-              if (event.message.kind === 'agent') {
-                setAgentTyping(false);
-              }
+            case 'process-started':
+              setProcessStarted(true);
               break;
-            case 'tool-update':
-              updateToolStatus(event.sessionId, event.toolId, event.status, event.result);
-              // 工具开始执行 = Agent 正在工作
-              if (event.status === 'running') {
-                setAgentTyping(true);
-              }
+            case 'auth-required':
+              setError('服务器需要密码认证');
+              break;
+            case 'disconnected':
+              setConnected(false);
               break;
           }
         });
 
-        // 创建会话
-        const newSession = await api.createSession();
-        createSession(newSession);
+        // 通知服务端客户端已就绪
+        api.ready();
+
+        // 启动终端进程
+        api.startProcess();
 
         return unsubscribe;
-      } catch (err) {
-        console.error('连接失败:', err);
-        if (mounted) {
-          setConnected(false);
+      } catch (err: any) {
+        console.error('[Session] 连接失败:', err);
+        if (mounted.current) {
           setConnecting(false);
+          setError(err.message || '连接失败');
         }
       }
     };
@@ -150,54 +94,64 @@ export default function SessionScreen() {
     connectAndInit();
 
     return () => {
-      mounted = false;
+      mounted.current = false;
       api.disconnect();
     };
   }, [url]);
 
-  // 发送消息
-  const handleSend = useCallback(async (text: string) => {
-    if (!session || sending) return;
+  const appendOutput = useCallback((text: string) => {
+    const line: TerminalLine = {
+      id: `line-${++outputCounter.current}`,
+      text: stripAnsi(text),
+      timestamp: Date.now(),
+    };
+    setOutput(prev => [...prev, line]);
+  }, []);
 
-    setSending(true);
-    setAgentTyping(true);
+  // 发送命令
+  const handleSend = useCallback(() => {
+    const text = inputText.trim();
+    if (!text) return;
+    api.sendTerminalInput(text + '\r');
+    setInputText('');
+  }, [inputText]);
 
-    // 清除之前的定时器
-    if (typingTimer.current) {
-      clearTimeout(typingTimer.current);
-    }
+  // 基础 ANSI 转义序列清除
+  function stripAnsi(text: string): string {
+    return text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
+  }
 
-    try {
-      // 乐观更新：先添加用户消息
-      const tempId = `temp-${Date.now()}`;
-      addMessage(session.id, {
-        kind: 'user',
-        id: tempId,
-        text,
-        status: 'pending',
-        createdAt: Date.now(),
-      });
-
-      // 发送到服务端
-      await api.sendMessage(session.id, text);
-    } catch (err) {
-      console.error('发送失败:', err);
-      setAgentTyping(false);
-    } finally {
-      setSending(false);
-    }
-  }, [session, sending]);
+  // 渲染单行输出
+  const renderLine = ({ item }: { item: TerminalLine }) => (
+    <Text style={styles.terminalLine} selectable>
+      {item.text}
+    </Text>
+  );
 
   // === 加载状态 ===
   if (connecting) {
     return (
       <View style={styles.fullScreen}>
-        <View style={styles.loadingContent}>
-          <View style={styles.loadingSpinner}>
-            <ActivityIndicator size="large" color="#3b82f6" />
-          </View>
-          <Text style={styles.loadingTitle}>正在连接</Text>
-          <Text style={styles.loadingUrl}>{url}</Text>
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={styles.statusText}>正在连接...</Text>
+          <Text style={styles.urlText}>{url ? decodeURIComponent(url) : ''}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // === 错误状态 ===
+  if (error) {
+    return (
+      <View style={styles.fullScreen}>
+        <View style={styles.centerContent}>
+          <Text style={styles.errorIcon}>!</Text>
+          <Text style={styles.statusText}>连接失败</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => router.back()}>
+            <Text style={styles.retryBtnText}>返回重试</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -207,245 +161,82 @@ export default function SessionScreen() {
   if (!connected) {
     return (
       <View style={styles.fullScreen}>
-        <View style={styles.loadingContent}>
-          <View style={styles.disconnectIcon}>
-            <Text style={styles.disconnectIconText}>⚡</Text>
-          </View>
-          <Text style={styles.loadingTitle}>连接已断开</Text>
-          <Text style={styles.loadingUrl}>{url}</Text>
-          <TouchableOpacity style={styles.reconnectBtn} onPress={() => router.back()}>
-            <Text style={styles.reconnectText}>返回重连</Text>
+        <View style={styles.centerContent}>
+          <Text style={styles.errorIcon}>!</Text>
+          <Text style={styles.statusText}>连接已断开</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => router.back()}>
+            <Text style={styles.retryBtnText}>返回重连</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
 
-  // === 等待会话 ===
-  if (!session) {
-    return (
-      <View style={styles.fullScreen}>
-        <View style={styles.loadingContent}>
-          <ActivityIndicator size="large" color="#3b82f6" />
-          <Text style={styles.loadingTitle}>正在创建会话...</Text>
-        </View>
-      </View>
-    );
-  }
-
-  // === 主界面 ===
-  const isEmpty = messages.length === 0;
-
+  // === 终端界面 ===
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* 头部 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.6}>
-          <Text style={styles.backIcon}>‹</Text>
+          <Text style={styles.backIcon}>{'‹'}</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {session.projectName || 'TakeLink'}
-          </Text>
-          <View style={[styles.statusDot, connected ? styles.dotOnline : styles.dotOffline]} />
+          <Text style={styles.headerTitle} numberOfLines={1}>TakeLink Terminal</Text>
+          <View style={[styles.statusDot, connected && styles.dotOnline]} />
         </View>
         <View style={{ width: 40 }} />
       </View>
 
-      {/* 内容区 */}
+      {/* 终端输出 */}
+      <FlatList
+        ref={flatListRef}
+        data={output}
+        renderItem={renderLine}
+        keyExtractor={item => item.id}
+        style={styles.terminal}
+        contentContainerStyle={styles.terminalContent}
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+      />
+
+      {/* 输入栏 */}
       <KeyboardAvoidingView
-        style={styles.content}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
+        style={[styles.inputBar, { paddingBottom: insets.bottom + 8 }]}
       >
-        {isEmpty ? (
-          <EmptyState />
-        ) : (
-          <ChatList messages={messages} />
-        )}
-
-        {/* 打字指示器 */}
-        {agentTyping && <TypingIndicator dot1={dot1} dot2={dot2} dot3={dot3} />}
-
-        <ChatInput onSend={handleSend} loading={sending || agentTyping} />
+        <TextInput
+          style={styles.input}
+          value={inputText}
+          onChangeText={setInputText}
+          placeholder="输入命令..."
+          placeholderTextColor="#4b5563"
+          onSubmitEditing={handleSend}
+          returnKeyType="send"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <TouchableOpacity style={styles.sendBtn} onPress={handleSend} activeOpacity={0.7}>
+          <Text style={styles.sendBtnText}>{'>'}</Text>
+        </TouchableOpacity>
       </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
-}
-
-// ========== 空状态组件 ==========
-
-function EmptyState() {
-  return (
-    <View style={emptyStyles.container}>
-      <Text style={emptyStyles.icon}>🤖</Text>
-      <Text style={emptyStyles.title}>开始对话</Text>
-      <Text style={emptyStyles.desc}>向远程终端发送指令</Text>
-      <View style={emptyStyles.tips}>
-        {QUICK_TIPS.map((tip, i) => (
-          <View key={i} style={emptyStyles.tip}>
-            <Text style={emptyStyles.tipIcon}>{tip.icon}</Text>
-            <Text style={emptyStyles.tipText}>{tip.text}</Text>
-          </View>
-        ))}
-      </View>
     </View>
   );
 }
 
-const emptyStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  icon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  title: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  desc: {
-    color: '#6b7280',
-    fontSize: 14,
-    marginBottom: 32,
-  },
-  tips: {
-    gap: 12,
-    width: '100%',
-  },
-  tip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1a1a2e',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 10,
-  },
-  tipIcon: {
-    fontSize: 18,
-  },
-  tipText: {
-    color: '#9ca3af',
-    fontSize: 14,
-  },
-});
-
-// ========== 打字指示器 ==========
-
-function TypingIndicator({ dot1, dot2, dot3 }: {
-  dot1: Animated.Value;
-  dot2: Animated.Value;
-  dot3: Animated.Value;
-}) {
-  const dotStyle = (anim: Animated.Value) => ({
-    transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [0, -6] }) }],
-    opacity: anim.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }),
-  });
-
-  return (
-    <View style={typingStyles.container}>
-      <View style={typingStyles.bubble}>
-        <Animated.View style={[typingStyles.dot, dotStyle(dot1)]} />
-        <Animated.View style={[typingStyles.dot, dotStyle(dot2)]} />
-        <Animated.View style={[typingStyles.dot, dotStyle(dot3)]} />
-      </View>
-    </View>
-  );
-}
-
-const typingStyles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-  },
-  bubble: {
-    flexDirection: 'row',
-    backgroundColor: '#1a1a2e',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
-    borderBottomLeftRadius: 4,
-    alignSelf: 'flex-start',
-    gap: 5,
-    alignItems: 'center',
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#6366f1',
-  },
-});
-
-// ========== 样式 ==========
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0f0f1a',
   },
-
-  // 全屏状态
   fullScreen: {
     flex: 1,
     backgroundColor: '#0f0f1a',
-  },
-  loadingContent: {
-    flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centerContent: {
     alignItems: 'center',
     padding: 24,
-  },
-  loadingSpinner: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#3b82f615',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  loadingTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  loadingUrl: {
-    color: '#4b5563',
-    fontSize: 13,
-    textAlign: 'center',
-  },
-  disconnectIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#ef444415',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  disconnectIconText: {
-    fontSize: 30,
-  },
-  reconnectBtn: {
-    marginTop: 28,
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-    backgroundColor: '#3b82f6',
-    borderRadius: 10,
-  },
-  reconnectText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
   },
 
   // 头部
@@ -454,7 +245,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingBottom: 10,
     backgroundColor: '#12121e',
     borderBottomWidth: 1,
     borderBottomColor: '#1e1e30',
@@ -482,21 +273,109 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    maxWidth: 200,
   },
   statusDot: {
     width: 7,
     height: 7,
     borderRadius: 4,
+    backgroundColor: '#ef4444',
   },
   dotOnline: {
     backgroundColor: '#4ade80',
   },
-  dotOffline: {
-    backgroundColor: '#ef4444',
+
+  // 状态
+  statusText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 20,
+    marginBottom: 6,
+  },
+  urlText: {
+    color: '#4b5563',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  errorIcon: {
+    fontSize: 36,
+    color: '#ef4444',
+    backgroundColor: '#ef444420',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    lineHeight: 64,
+    fontWeight: 'bold',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    marginTop: 28,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    backgroundColor: '#3b82f6',
+    borderRadius: 10,
+  },
+  retryBtnText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
 
-  content: {
+  // 终端
+  terminal: {
     flex: 1,
+    backgroundColor: '#0a0a14',
+  },
+  terminalContent: {
+    padding: 12,
+    paddingBottom: 20,
+  },
+  terminalLine: {
+    color: '#d4d4d8',
+    fontSize: 13,
+    fontFamily: 'monospace',
+    lineHeight: 18,
+  },
+
+  // 输入栏
+  inputBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    backgroundColor: '#12121e',
+    borderTopWidth: 1,
+    borderTopColor: '#1e1e30',
+  },
+  input: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: '#fff',
+    fontFamily: 'monospace',
+  },
+  sendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#3b82f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+    alignSelf: 'center',
+  },
+  sendBtnText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

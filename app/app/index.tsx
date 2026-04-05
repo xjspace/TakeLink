@@ -42,24 +42,24 @@ export default function ConnectScreen() {
   useEffect(() => {
     if (params.scannedUrl) {
       const url = decodeURIComponent(params.scannedUrl);
-      setInputUrl(url);
+      setInputUrl(cleanUrl(url));
       // 自动连接
       handleConnect(url);
     }
   }, [params.scannedUrl]);
 
-  // 默认填充最近使用的地址
-  useEffect(() => {
-    if (history.length > 0 && !inputUrl) {
-      setInputUrl(history[0].url);
-    }
-  }, [history]);
+  // 默认填充已在 loadHistory 中处理
 
   const loadHistory = async () => {
     try {
       const saved = await SecureStore.getItemAsync(HISTORY_KEY);
       if (saved) {
-        setHistory(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setHistory(parsed);
+        // 如果没有扫码URL且输入框为空，用最近地址填入（去掉 http:// 前缀）
+        if (!params.scannedUrl && parsed.length > 0) {
+          setInputUrl(cleanUrl(parsed[0].url));
+        }
       }
     } catch (e) {
       console.error('加载历史失败:', e);
@@ -205,7 +205,7 @@ export default function ConnectScreen() {
               >
                 <Text style={styles.historyIcon}>🖥️</Text>
                 <View style={styles.historyContent}>
-                  <Text style={styles.historyUrl} numberOfLines={1}>
+                  <Text style={styles.historyUrl} numberOfLines={1} ellipsizeMode="middle">
                     {formatUrl(item.url)}
                   </Text>
                   <Text style={styles.historyTime}>{formatTime(item.lastUsed)}</Text>
@@ -227,12 +227,33 @@ export default function ConnectScreen() {
   );
 }
 
+/** 输入框显示用：去掉 http:// 和 /app，只留 ip:port */
+function cleanUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.host; // host = hostname + port，如 192.168.1.5:8080
+  } catch {
+    return url;
+  }
+}
+
 function formatUrl(url: string): string {
   try {
     const urlObj = new URL(url);
-    return urlObj.host;
+    let host = urlObj.host; // host 含端口，如 [240e:...]:8080
+    // IPv6 太长时缩写：只显示首尾段 + 端口
+    if (host.includes(':') && host.length > 25) {
+      const port = urlObj.port ? `:${urlObj.port}` : '';
+      // 取前两段和后两段
+      const bare = urlObj.hostname.replace(/^\[|\]$/g, '');
+      const parts = bare.split(':');
+      const head = parts.slice(0, 2).join(':');
+      const tail = parts.slice(-2).join(':');
+      host = `[${head}...${tail}]${port}`;
+    }
+    return host;
   } catch {
-    return url;
+    return url.length > 25 ? url.slice(0, 22) + '...' : url;
   }
 }
 
@@ -368,6 +389,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#fff',
     fontWeight: '500',
+    overflow: 'hidden',
   },
   historyTime: {
     fontSize: 12,
