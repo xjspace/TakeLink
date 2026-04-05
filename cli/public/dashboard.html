@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0c0c0c">
+  <title>TakeLink Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0c0c0c;
+      color: #ccc;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header h1 {
+      font-size: 18px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header h1 span { color: #3b82f6; }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .uptime-badge {
+      background: #1e293b;
+      color: #94a3b8;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+    .refresh-btn {
+      background: none;
+      border: 1px solid #444;
+      color: #94a3b8;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .refresh-btn:hover { border-color: #3b82f6; color: #3b82f6; }
+    .refresh-btn.loading { opacity: 0.5; pointer-events: none; }
+
+    /* Layout */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Realtime Bar */
+    .realtime-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .realtime-card {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+    .realtime-card .value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+    .realtime-card .value.blue { color: #3b82f6; }
+    .realtime-card .value.green { color: #22c55e; }
+    .realtime-card .value.purple { color: #a855f7; }
+    .realtime-card .value.orange { color: #f97316; }
+    .realtime-card .label {
+      font-size: 11px;
+      color: #666;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Section */
+    .section {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .section-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid #252525;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-body { padding: 16px 18px; }
+
+    /* Two column grid */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .realtime-bar { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* Stat row */
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #1f1f1f;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { font-size: 13px; color: #999; }
+    .stat-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Bar chart */
+    .bar-chart { width: 100%; }
+    .bar-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 10px;
+    }
+    .bar-label {
+      width: 100px;
+      font-size: 12px;
+      color: #999;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .bar-track {
+      flex: 1;
+      background: #1f1f1f;
+      border-radius: 4px;
+      height: 22px;
+      overflow: hidden;
+      position: relative;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s ease;
+      min-width: 2px;
+    }
+    .bar-fill.blue { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .bar-fill.green { background: linear-gradient(90deg, #22c55e, #4ade80); }
+    .bar-fill.purple { background: linear-gradient(90deg, #a855f7, #c084fc); }
+    .bar-fill.orange { background: linear-gradient(90deg, #f97316, #fb923c); }
+    .bar-fill.red { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .bar-count {
+      width: 50px;
+      font-size: 12px;
+      color: #ccc;
+      text-align: left;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Timeline */
+    .timeline-chart {
+      width: 100%;
+      height: 180px;
+      position: relative;
+    }
+    .timeline-chart canvas { width: 100%; height: 100%; }
+
+    /* Table */
+    .stats-table { width: 100%; border-collapse: collapse; }
+    .stats-table th {
+      text-align: left;
+      font-size: 11px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 8px 0;
+      border-bottom: 1px solid #252525;
+    }
+    .stats-table td {
+      padding: 8px 0;
+      font-size: 13px;
+      border-bottom: 1px solid #1f1f1f;
+    }
+    .stats-table tr:last-child td { border-bottom: none; }
+    .stats-table .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    /* Dot indicator */
+    .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    .dot.blue { background: #3b82f6; }
+    .dot.green { background: #22c55e; }
+    .dot.purple { background: #a855f7; }
+    .dot.orange { background: #f97316; }
+    .dot.red { background: #ef4444; }
+    .dot.gray { background: #666; }
+
+    /* No data */
+    .no-data {
+      text-align: center;
+      color: #555;
+      padding: 30px;
+      font-size: 13px;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #444;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1><span>TakeLink</span> Dashboard</h1>
+    <div class="header-actions">
+      <div class="uptime-badge" id="uptime">--:--:--</div>
+      <button class="refresh-btn" id="refresh-btn" onclick="refresh()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Realtime -->
+    <div class="realtime-bar">
+      <div class="realtime-card">
+        <div class="value blue" id="rt-connections">0</div>
+        <div class="label">Active Connections</div>
+      </div>
+      <div class="realtime-card">
+        <div class="value green" id="rt-terminals">0</div>
+        <div class="label">Active Terminals</div>
+      </div>
+      <div class="realtime-card">
+        <div class="value purple" id="rt-tmux">0</div>
+        <div class="label">Tmux Sessions</div>
+      </div>
+      <div class="realtime-card">
+        <div class="value orange" id="rt-uptime-short">--</div>
+        <div class="label">Uptime</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Totals -->
+      <div class="section">
+        <div class="section-header">Session Totals</div>
+        <div class="section-body">
+          <div class="stat-row">
+            <span class="stat-label"><span class="dot blue"></span>Connection Attempts</span>
+            <span class="stat-value" id="t-attempts">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label"><span class="dot green"></span>Successful</span>
+            <span class="stat-value" id="t-successes">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label"><span class="dot red"></span>Failed</span>
+            <span class="stat-value" id="t-failures">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label"><span class="dot green"></span>Terminals Created</span>
+            <span class="stat-value" id="t-terminals-created">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label"><span class="dot gray"></span>Terminals Destroyed</span>
+            <span class="stat-value" id="t-terminals-destroyed">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label"><span class="dot purple"></span>Custom Commands</span>
+            <span class="stat-value" id="t-custom-commands">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label"><span class="dot green"></span>Auth Successes</span>
+            <span class="stat-value" id="t-auth-ok">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label"><span class="dot red"></span>Auth Failures</span>
+            <span class="stat-value" id="t-auth-fail">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label"><span class="dot orange"></span>Virtual Key Presses</span>
+            <span class="stat-value" id="t-vkeys">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Client Distribution -->
+      <div>
+        <div class="section">
+          <div class="section-header">Client Type</div>
+          <div class="section-body" id="client-type-bars">
+            <div class="no-data">Loading...</div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-header">Connection Method</div>
+          <div class="section-body" id="connection-method-bars">
+            <div class="no-data">Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hourly Timeline -->
+    <div class="section">
+      <div class="section-header">Hourly Activity (Last 48h)</div>
+      <div class="section-body">
+        <div class="timeline-chart">
+          <canvas id="timeline-canvas"></canvas>
+        </div>
+        <div id="timeline-no-data" class="no-data" style="display:none;">No hourly data yet</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Auth Methods -->
+      <div class="section">
+        <div class="section-header">Auth Methods</div>
+        <div class="section-body" id="auth-methods">
+          <div class="no-data">No auth data</div>
+        </div>
+      </div>
+
+      <!-- Custom Command Usage -->
+      <div class="section">
+        <div class="section-header">Custom Commands</div>
+        <div class="section-body" id="custom-commands">
+          <div class="no-data">No custom command usage</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    TakeLink Stats Dashboard &middot; Auto-refresh every 30s &middot; <a href="/app" style="color:#3b82f6;text-decoration:none;">Back to Terminal</a>
+  </div>
+
+<script>
+  const API = '/api/stats';
+  let refreshTimer;
+
+  async function fetchStats() {
+    const btn = document.getElementById('refresh-btn');
+    btn.classList.add('loading');
+    try {
+      const res = await fetch(API);
+      const data = await res.json();
+      render(data);
+    } catch (e) {
+      console.error('Fetch stats failed:', e);
+    } finally {
+      btn.classList.remove('loading');
+    }
+  }
+
+  function refresh() { fetchStats(); }
+
+  function formatUptime(ms) {
+    const s = Math.floor(ms / 1000);
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (d > 0) return d + 'd ' + h + 'h';
+    const hh = String(h).padStart(2, '0');
+    const mm = String(m).padStart(2, '0');
+    const ss = String(sec).padStart(2, '0');
+    return hh + ':' + mm + ':' + ss;
+  }
+
+  function formatUptimeShort(ms) {
+    const s = Math.floor(ms / 1000);
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    if (d > 0) return d + 'd ' + h + 'h';
+    if (h > 0) return h + 'h ' + m + 'm';
+    return m + 'm';
+  }
+
+  function render(data) {
+    // Uptime
+    document.getElementById('uptime').textContent = formatUptime(data.uptime);
+    document.getElementById('rt-uptime-short').textContent = formatUptimeShort(data.uptime);
+
+    // Realtime
+    document.getElementById('rt-connections').textContent = data.realtime.currentConnections;
+    document.getElementById('rt-terminals').textContent = data.realtime.currentTerminals;
+    document.getElementById('rt-tmux').textContent = data.realtime.activeTmuxSessions;
+
+    // Totals
+    const t = data.totals;
+    document.getElementById('t-attempts').textContent = t.connectionAttempts;
+    document.getElementById('t-successes').textContent = t.connectionSuccesses;
+    document.getElementById('t-failures').textContent = t.connectionFailures;
+    document.getElementById('t-terminals-created').textContent = t.terminalsCreated;
+    document.getElementById('t-terminals-destroyed').textContent = t.terminalsDestroyed;
+    document.getElementById('t-custom-commands').textContent = t.customCommandInvocations;
+    document.getElementById('t-auth-ok').textContent = t.authSuccesses;
+    document.getElementById('t-auth-fail').textContent = t.authFailures;
+    document.getElementById('t-vkeys').textContent = t.virtualKeyInteractions;
+
+    // Client Type bars
+    renderBars('client-type-bars', data.distributions.clientType, {
+      'capacitor': { color: 'blue', label: 'Capacitor App' },
+      'web-mobile': { color: 'green', label: 'Web Mobile' },
+      'web-desktop': { color: 'purple', label: 'Web Desktop' },
+    });
+
+    // Connection Method bars
+    renderBars('connection-method-bars', data.distributions.connectionMethod, {
+      'qr-scan': { color: 'blue', label: 'QR Scan' },
+      'manual-input': { color: 'orange', label: 'Manual Input' },
+      'direct': { color: 'green', label: 'Direct' },
+    });
+
+    // Auth Methods
+    renderAuthMethods(data.distributions.authMethod);
+
+    // Custom Commands
+    renderCustomCommands(data.customCommandUsage);
+
+    // Timeline
+    renderTimeline(data.hourlyBuckets);
+  }
+
+  function renderBars(containerId, data, config) {
+    const container = document.getElementById(containerId);
+    const entries = Object.entries(config);
+    const maxVal = Math.max(1, ...entries.map(([k]) => data[k] || 0));
+
+    let html = '<div class="bar-chart">';
+    for (const [key, { color, label }] of entries) {
+      const val = data[key] || 0;
+      const pct = maxVal > 0 ? (val / maxVal * 100) : 0;
+      html += '<div class="bar-row">' +
+        '<span class="bar-label">' + label + '</span>' +
+        '<div class="bar-track"><div class="bar-fill ' + color + '" style="width:' + pct + '%"></div></div>' +
+        '<span class="bar-count">' + val + '</span>' +
+        '</div>';
+    }
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  function renderAuthMethods(data) {
+    const container = document.getElementById('auth-methods');
+    const entries = Object.entries(data);
+    if (entries.length === 0) {
+      container.innerHTML = '<div class="no-data">No auth data</div>';
+      return;
+    }
+    const maxVal = Math.max(1, ...entries.map(([, v]) => v));
+    const colorMap = { success: 'green', failed: 'red' };
+    let html = '<div class="bar-chart">';
+    for (const [key, val] of entries.sort((a, b) => b[1] - a[1])) {
+      const pct = (val / maxVal * 100);
+      const isOk = key.includes('success');
+      const color = isOk ? 'green' : 'red';
+      const label = key.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      html += '<div class="bar-row">' +
+        '<span class="bar-label">' + label + '</span>' +
+        '<div class="bar-track"><div class="bar-fill ' + color + '" style="width:' + pct + '%"></div></div>' +
+        '<span class="bar-count">' + val + '</span>' +
+        '</div>';
+    }
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  function renderCustomCommands(data) {
+    const container = document.getElementById('custom-commands');
+    const entries = Object.entries(data);
+    if (entries.length === 0) {
+      container.innerHTML = '<div class="no-data">No custom command usage</div>';
+      return;
+    }
+    const maxVal = Math.max(1, ...entries.map(([, v]) => v));
+    let html = '<div class="bar-chart">';
+    for (const [name, val] of entries.sort((a, b) => b[1] - a[1])) {
+      const pct = (val / maxVal * 100);
+      html += '<div class="bar-row">' +
+        '<span class="bar-label">' + name + '</span>' +
+        '<div class="bar-track"><div class="bar-fill orange" style="width:' + pct + '%"></div></div>' +
+        '<span class="bar-count">' + val + '</span>' +
+        '</div>';
+    }
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  function renderTimeline(buckets) {
+    const canvas = document.getElementById('timeline-canvas');
+    const noData = document.getElementById('timeline-no-data');
+
+    if (!buckets || buckets.length === 0) {
+      canvas.style.display = 'none';
+      noData.style.display = 'block';
+      return;
+    }
+    canvas.style.display = 'block';
+    noData.style.display = 'none';
+
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const W = rect.width;
+    const H = rect.height;
+    const pad = { top: 20, right: 16, bottom: 36, left: 44 };
+    const chartW = W - pad.left - pad.right;
+    const chartH = H - pad.top - pad.bottom;
+
+    const maxConn = Math.max(1, ...buckets.map(b => b.connectionAttempts));
+    const maxTerm = Math.max(1, ...buckets.map(b => b.terminalsCreated));
+    const maxVal = Math.max(maxConn, maxTerm);
+
+    // Grid lines
+    ctx.strokeStyle = '#1f1f1f';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.top + (chartH / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(W - pad.right, y);
+      ctx.stroke();
+    }
+
+    // Y axis labels
+    ctx.fillStyle = '#555';
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.top + (chartH / 4) * i;
+      const val = Math.round(maxVal * (1 - i / 4));
+      ctx.fillText(val, pad.left - 6, y + 3);
+    }
+
+    // Bars - connection attempts
+    const barW = Math.max(2, chartW / buckets.length - 2);
+    const gap = (chartW - barW * buckets.length) / (buckets.length + 1);
+
+    buckets.forEach((b, i) => {
+      const x = pad.left + gap + i * (barW + gap);
+      // Connection bars (blue)
+      const connH = maxVal > 0 ? (b.connectionAttempts / maxVal) * chartH : 0;
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.6)';
+      ctx.fillRect(x, pad.top + chartH - connH, barW * 0.45, connH);
+
+      // Terminal bars (green)
+      const termH = maxVal > 0 ? (b.terminalsCreated / maxVal) * chartH : 0;
+      ctx.fillStyle = 'rgba(34, 197, 94, 0.6)';
+      ctx.fillRect(x + barW * 0.55, pad.top + chartH - termH, barW * 0.45, termH);
+    });
+
+    // X axis labels (show every N buckets)
+    ctx.fillStyle = '#555';
+    ctx.textAlign = 'center';
+    const step = Math.max(1, Math.floor(buckets.length / 8));
+    buckets.forEach((b, i) => {
+      if (i % step === 0 || i === buckets.length - 1) {
+        const x = pad.left + gap + i * (barW + gap) + barW / 2;
+        const label = b.period.substring(5, 10); // MM-DD
+        const hour = b.period.substring(11, 16);  // HH:MM
+        ctx.fillText(label, x, H - pad.bottom + 14);
+        ctx.fillText(hour, x, H - pad.bottom + 26);
+      }
+    });
+
+    // Legend
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.8)';
+    ctx.fillRect(pad.left, 4, 10, 10);
+    ctx.fillStyle = '#888';
+    ctx.textAlign = 'left';
+    ctx.fillText('Connections', pad.left + 14, 13);
+
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.8)';
+    ctx.fillRect(pad.left + 100, 4, 10, 10);
+    ctx.fillStyle = '#888';
+    ctx.fillText('Terminals', pad.left + 114, 13);
+  }
+
+  // Init
+  fetchStats();
+  refreshTimer = setInterval(fetchStats, 30000);
+
+  // Handle resize for timeline
+  window.addEventListener('resize', () => {
+    fetchStats();
+  });
+</script>
+
+</body>
+</html>

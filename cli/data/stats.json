@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "savedAt": 1775361077860,
+  "lifetimeTotals": {
+    "connectionAttempts": 12,
+    "connectionSuccesses": 12,
+    "connectionFailures": 0,
+    "terminalsCreated": 11,
+    "terminalsDestroyed": 0,
+    "customCommandInvocations": 0,
+    "authSuccesses": 11,
+    "authFailures": 0,
+    "virtualKeyInteractions": 69
+  },
+  "lifetimeDistributions": {
+    "clientType": {
+      "capacitor": 0,
+      "web-mobile": 0,
+      "web-desktop": 12
+    },
+    "connectionMethod": {
+      "qr-scan": 0,
+      "manual-input": 0,
+      "direct": 12
+    },
+    "authMethod": {}
+  },
+  "customCommandUsage": {}
+}

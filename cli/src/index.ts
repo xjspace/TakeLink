@@ -27,12 +27,18 @@ import { execSync } from 'child_process';
 // Harness 模式组件
 import { harnessEnhancer, toolRegistry } from './harness/index.js';
 
+// Stats 模式组件
+import { statsAggregator } from './stats/index.js';
+import type { ClientReport } from './stats/index.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // ============ 配置 ============
 import dotenv from 'dotenv';
-dotenv.config();
+// 显式指定 .env 路径，避免从其他目录启动时找不到配置
+const envPath = path.join(__dirname, '..', '.env');
+dotenv.config({ path: fs.existsSync(envPath) ? envPath : undefined });
 
 const PORT = parseInt(process.env.PORT || '8080');
 const HOST = '::'; // 同时监听 IPv4 和 IPv6
@@ -416,13 +422,11 @@ class ProcessManager {
       this.setupPtyCallbacks(pty, id, tmuxSession);
       isPersistent = true;
     } else {
-      console.log(chalk.gray(`[CLI] 命令: ${CLAUDE_CONFIG.command}`));
-      const isBat = CLAUDE_CONFIG.command.toLowerCase().endsWith('.bat') ||
-                    CLAUDE_CONFIG.command.toLowerCase().endsWith('.cmd');
+      console.log(chalk.gray(`[CLI] 命令: ${DEFAULT_SHELL}`));
 
       pty = spawn(
-        isBat ? 'cmd.exe' : CLAUDE_CONFIG.command,
-        isBat ? ['/c', CLAUDE_CONFIG.command] : [],
+        DEFAULT_SHELL,
+        [],
         {
           name: 'xterm-256color',
           cols: 80,
@@ -592,6 +596,7 @@ async function main() {
   app.use(express.static(join(process.cwd(), 'public')));
   app.use('/node_modules', express.static(join(process.cwd(), 'node_modules')));
   app.get('/app', (req, res) => res.sendFile(join(process.cwd(), 'public/app.html')));
+  app.get('/dashboard', (req, res) => res.sendFile(join(process.cwd(), 'public/dashboard.html')));
   app.get('/', (req, res) => res.redirect('/app'));
 
   // Harness API: 获取系统统计
@@ -607,6 +612,16 @@ async function main() {
       processes,
       timestamp: Date.now(),
     });
+  });
+
+  // Stats API: 获取分析数据快照
+  app.get('/api/stats', (req, res) => {
+    const processes = processManager.getProcesses();
+    const tmuxCount = processes.filter(p => p.isPersistent).length;
+    res.json(statsAggregator.getSnapshot({
+      terminalCount: processes.length,
+      tmuxCount,
+    }));
   });
 
   // 认证 token 存储
@@ -648,6 +663,19 @@ async function main() {
     clientIp = clientIp.replace(/^::ffff:/, '').replace(/^::1$/, '127.0.0.1');
     console.log(chalk.green(`📱 已连接 [${clientIp}]`));
 
+    // Stats: 客户端报告
+    socket.on('client-report', (report: ClientReport) => {
+      statsAggregator.recordConnectionAttempt(report, true);
+      statsAggregator.registerSession(socket.id, report.clientType);
+    });
+
+    // Stats: 虚拟键盘等事件
+    socket.on('stats-event', (event: { type: string; data?: Record<string, unknown> }) => {
+      if (event.type === 'virtual-key') {
+        statsAggregator.recordVirtualKey();
+      }
+    });
+
     // 认证
     let isAuthenticated = !AUTH_PASSWORD;
     socket.emit('auth-required', { required: !!AUTH_PASSWORD });
@@ -661,9 +689,11 @@ async function main() {
       }
       if (validateToken(token, clientIp)) {
         isAuthenticated = true;
+        statsAggregator.recordAuth('token', true);
         console.log(chalk.green(`✅ Token 认证成功 [${clientIp}]`));
         callback?.({ success: true });
       } else {
+        statsAggregator.recordAuth('token', false);
         callback?.({ success: false });
       }
     });
@@ -673,11 +703,13 @@ async function main() {
       if (!AUTH_PASSWORD) { isAuthenticated = true; callback?.({ success: true }); return; }
       if (password === AUTH_PASSWORD) {
         isAuthenticated = true;
+        statsAggregator.recordAuth('password', true);
         const token = generateToken();
         authTokens.set(token, { ip: clientIp, createdAt: Date.now() });
         console.log(chalk.green(`✅ 认证成功 [${clientIp}]`));
         callback?.({ success: true, token });
       } else {
+        statsAggregator.recordAuth('password', false);
         console.log(chalk.red(`❌ 认证失败 [${clientIp}]`));
         callback?.({ success: false, error: '密码错误' });
       }
@@ -726,6 +758,9 @@ async function main() {
       }
       const proc = processManager.startProcess(cwd);
 
+      // Stats: 记录终端创建
+      statsAggregator.recordTerminalCreated(proc.isPersistent);
+
       // 注册新的回调
       currentProcessId = proc.id;
       processManager.registerCallback(proc.id, socket.id, (output) => {
@@ -752,6 +787,7 @@ async function main() {
           console.log(chalk.cyan(`[CMD] 执行: ${displayCmd}`));
         }
         processManager.sendInput(currentProcessId, normalizedCmd + '\r');
+        statsAggregator.recordCustomCommand(cmd.split(':')[0] || 'unknown');
       }
     });
 
@@ -817,6 +853,7 @@ async function main() {
 
     socket.on('disconnect', () => {
       console.log(chalk.gray(`📱 已断开 [${clientIp}]`));
+      statsAggregator.removeSession(socket.id);
       processManager.getProcesses().forEach(proc => {
         processManager.unregisterCallback(proc.id, socket.id);
       });
@@ -855,6 +892,7 @@ async function main() {
 
   // 退出
   const cleanup = () => {
+    statsAggregator.destroy();
     processManager.killAll();
     httpServer.close();
     process.exit(0);

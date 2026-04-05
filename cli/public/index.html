@@ -63,6 +63,7 @@
     }
     .terminal-wrapper .xterm {
       height: 100%;
+      width: 100%;
       padding: 4px;
     }
     .terminal-wrapper .xterm-viewport::-webkit-scrollbar {
@@ -84,6 +85,7 @@
     }
     .terminal-wrapper .xterm-screen {
       height: auto !important;
+      width: 100% !important;
     }
 
     /* 移动端终端优化 */
@@ -1016,10 +1018,20 @@
     let processes = []; // 进程列表
     let toolbarHidden = true; // 工具栏隐藏状态 - 默认隐藏
     let customCommands = []; // 自定义命令
+    let connectionMethod = 'direct'; // Stats: 连接方式 (qr-scan | manual-input | direct)
     let isCapsLock = false; // Caps Lock 状态
 
     // DOM 快捷访问
     const $ = (id) => document.getElementById(id);
+
+    // 统一的终端适配+刷新，修复移动端 resize 后画面分半问题
+    function fitAndRefresh() {
+      if (!fitAddon || !term) return;
+      try {
+        fitAddon.fit();
+        term.refresh(0, term.rows - 1);
+      } catch(e) {}
+    }
 
     // 更新自定义命令按钮
     function updateCustomCommandButtons() {
@@ -1059,7 +1071,7 @@
       // 切换到终端页面时调整终端尺寸
       if (page.id === 'terminal-page' && term && fitAddon) {
         setTimeout(() => {
-          try { fitAddon.fit(); } catch(e) {}
+          try { fitAndRefresh(); } catch(e) {}
         }, 100);
       }
     }
@@ -1159,7 +1171,7 @@
       // 重新适配终端尺寸
       setTimeout(() => {
         if (term && fitAddon) {
-          try { fitAddon.fit(); } catch(e) {}
+          try { fitAndRefresh(); } catch(e) {}
         }
       }, 100);
     }
@@ -1238,13 +1250,14 @@
       term.onData((data) => {
         if (socket && currentId) {
           socket.emit('terminal-input', { id: currentId, data: data });
+          socket.emit('stats-event', { type: 'virtual-key' });
         }
       });
 
       // 延迟适配尺寸
       setTimeout(() => {
         try {
-          fitAddon.fit();
+          fitAndRefresh();
           if (socket && currentId) {
             socket.emit('resize', { id: currentId, cols: term.cols, rows: term.rows });
           }
@@ -1255,7 +1268,7 @@
       new ResizeObserver(() => {
         if (term && fitAddon && wrapper.clientWidth > 0) {
           try {
-            fitAddon.fit();
+            fitAndRefresh();
             if (socket && currentId) {
               socket.emit('resize', { id: currentId, cols: term.cols, rows: term.rows });
             }
@@ -1713,7 +1726,8 @@
           $('scanner-close').onclick = stopScanner;
 
           // 手动连接按钮事件
-          $('connect-btn').onclick = () => {
+                    connectionMethod = 'manual-input';
+$('connect-btn').onclick = () => {
             let url = $('manual-url').value.trim();
             if (!url) {
               $('connect-error').textContent = 'Please enter server URL';
@@ -1991,6 +2005,7 @@
 
     function handleQRCode(data) {
       stopScanner();
+      connectionMethod = 'qr-scan'; // Stats: 标记为扫码连接
 
       // 解析二维码数据
       // 支持格式: http://192.168.1.100:8080/app 或纯 URL
@@ -2045,6 +2060,15 @@
 
       // Socket 事件
       socket.on('connect', () => {
+        // Stats: 发送客户端报告
+        const isMob = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const clientType = isMob ? 'web-mobile' : 'web-desktop';
+        socket.emit('client-report', {
+          clientType,
+          connectionMethod,
+          userAgent: navigator.userAgent,
+          screenSize: window.innerWidth + 'x' + window.innerHeight
+        });
         // 不立即发送 ready，等认证完成
       });
 
@@ -2146,7 +2170,7 @@
         // 立即发送终端尺寸并聚焦终端
         setTimeout(() => {
           if (term && fitAddon && socket && currentId) {
-            fitAddon.fit();
+            fitAndRefresh();
             socket.emit('resize', { id: currentId, cols: term.cols, rows: term.rows });
             term.focus();
           }
@@ -2178,17 +2202,23 @@
         }
       });
 
+      // 获取当前终端的 cwd，用于新建终端时保持目录一致
+      function getCurrentCwd() {
+        const currentProc = processes.find(p => p.id === currentId);
+        return currentProc?.cwd || undefined;
+      }
+
       // 绑定 DOM 事件 - 在 init 内部确保 socket 已初始化
       $('new-btn').addEventListener('click', () => {
-        if (socket) socket.emit('start-process', {});
+        if (socket) socket.emit('start-process', { cwd: getCurrentCwd() });
       });
 
       // 新建终端按钮（标签栏 + 按钮）
       $('tab-add').addEventListener('click', () => {
-        if (socket) socket.emit('start-process', {});
+        if (socket) socket.emit('start-process', { cwd: getCurrentCwd() });
       });
       $('new-cli-btn').addEventListener('click', () => {
-        if (socket) socket.emit('start-process', {});
+        if (socket) socket.emit('start-process', { cwd: getCurrentCwd() });
       });
 
       // Agent Team 按钮 - 仅在 Claude Code IDE 环境显示
@@ -2380,7 +2410,7 @@
           setTimeout(() => {
             if (term) term.focus();
             if (fitAddon) {
-              try { fitAddon.fit(); } catch(err) {}
+              try { fitAndRefresh(); } catch(err) {}
             }
           }, 100);
         }

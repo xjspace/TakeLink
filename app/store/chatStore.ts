@@ -1,13 +1,14 @@
 /**
- * 聊天状态管理
+ * 聊天状态管理 v2
+ * 优化：减少 Map 重建、消息数组增量更新
  */
 
 import { create } from 'zustand';
-import { Message, Session, UserMessage, AgentMessage, ToolMessage } from '../types/message';
+import { Message, Session, ToolMessage } from '../types/message';
 
 interface ChatState {
   // 状态
-  sessions: Map<string, Session>;
+  sessions: Record<string, Session>;
   currentSessionId: string | null;
   connected: boolean;
   connecting: boolean;
@@ -32,8 +33,8 @@ interface ChatState {
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
-  // 初始状态
-  sessions: new Map(),
+  // 初始状态 - 使用 Record 替代 Map，减少重建开销
+  sessions: {},
   currentSessionId: null,
   connected: false,
   connecting: true,
@@ -41,59 +42,67 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // 会话操作
   setCurrentSession: (sessionId) => set({ currentSessionId: sessionId }),
 
-  createSession: (session) => set((state) => {
-    const sessions = new Map(state.sessions);
-    sessions.set(session.id, session);
-    return { sessions, currentSessionId: session.id };
-  }),
+  createSession: (session) => set((state) => ({
+    sessions: { ...state.sessions, [session.id]: session },
+    currentSessionId: session.id,
+  })),
 
   updateSession: (sessionId, updates) => set((state) => {
-    const sessions = new Map(state.sessions);
-    const session = sessions.get(sessionId);
-    if (session) {
-      sessions.set(sessionId, { ...session, ...updates });
-    }
-    return { sessions };
+    const session = state.sessions[sessionId];
+    if (!session) return state;
+    return {
+      sessions: { ...state.sessions, [sessionId]: { ...session, ...updates } },
+    };
   }),
 
-  // 消息操作
+  // 消息操作 - 增量更新
   addMessage: (sessionId, message) => set((state) => {
-    const sessions = new Map(state.sessions);
-    const session = sessions.get(sessionId);
-    if (session) {
-      sessions.set(sessionId, {
-        ...session,
-        messages: [...session.messages, message]
-      });
-    }
-    return { sessions };
+    const session = state.sessions[sessionId];
+    if (!session) return state;
+    return {
+      sessions: {
+        ...state.sessions,
+        [sessionId]: {
+          ...session,
+          messages: [...session.messages, message],
+        },
+      },
+    };
   }),
 
   updateMessage: (sessionId, messageId, updates) => set((state) => {
-    const sessions = new Map(state.sessions);
-    const session = sessions.get(sessionId);
-    if (session) {
-      const messages = session.messages.map(m =>
-        m.id === messageId ? { ...m, ...updates } as Message : m
-      );
-      sessions.set(sessionId, { ...session, messages });
-    }
-    return { sessions };
+    const session = state.sessions[sessionId];
+    if (!session) return state;
+    return {
+      sessions: {
+        ...state.sessions,
+        [sessionId]: {
+          ...session,
+          messages: session.messages.map(m =>
+            m.id === messageId ? { ...m, ...updates } as Message : m
+          ),
+        },
+      },
+    };
   }),
 
   updateToolStatus: (sessionId, toolId, status, result) => set((state) => {
-    const sessions = new Map(state.sessions);
-    const session = sessions.get(sessionId);
-    if (session) {
-      const messages = session.messages.map(m => {
-        if (m.kind === 'tool' && m.id === toolId) {
-          return { ...m, status, result } as ToolMessage;
-        }
-        return m;
-      });
-      sessions.set(sessionId, { ...session, messages });
-    }
-    return { sessions };
+    const session = state.sessions[sessionId];
+    if (!session) return state;
+    return {
+      sessions: {
+        ...state.sessions,
+        [sessionId]: {
+          ...session,
+          messages: session.messages.map(m => {
+            if (m.kind === 'tool' && m.id === toolId) {
+              return { ...m, status, result } as ToolMessage;
+            }
+            return m;
+          }),
+        },
+      },
+    };
   }),
 
   // 连接状态
@@ -104,11 +113,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
   getCurrentSession: () => {
     const state = get();
     if (!state.currentSessionId) return undefined;
-    return state.sessions.get(state.currentSessionId);
+    return state.sessions[state.currentSessionId];
   },
 
   getMessages: () => {
     const session = get().getCurrentSession();
     return session?.messages || [];
-  }
+  },
 }));
