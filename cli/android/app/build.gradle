@@ -1,7 +1,8 @@
 apply plugin: 'com.android.application'
 
-// 从 app/package.json 读取版本号
-def appPackageJson = new File(rootProject.projectDir.parent, 'app/package.json')
+// 从仓库根目录的 app/package.json 读取版本号
+// rootProject.projectDir = <repo>/cli/android → parent = <repo>/cli → parent = <repo>
+def appPackageJson = new File(rootProject.projectDir.parentFile.parentFile, 'app/package.json')
 def versionInfo = [:]
 if (appPackageJson.exists()) {
     def json = new groovy.json.JsonSlurper().parseText(appPackageJson.text)
