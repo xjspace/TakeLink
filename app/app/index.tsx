@@ -130,23 +130,33 @@ export default function ConnectScreen() {
   return (
     <LinearGradient
       colors={['#0f0f1a', '#1a1a2e', '#16213e']}
-      style={[styles.container, { paddingTop: insets.top + 20 }]}
+      style={[styles.container, { paddingTop: insets.top + 12 }]}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        {/* 顶部栏 */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.logoEmoji}>🚀</Text>
-            <View>
-              <Text style={styles.title}>TakeLink</Text>
-              <Text style={styles.subtitle}>局域网远程终端</Text>
-            </View>
-          </View>
-
-          {/* 扫码按钮 - 右上角小按钮 */}
+        {/* 顶部搜索栏：输入框 + 连接 + 扫码 */}
+        <View style={styles.searchBar}>
+          <TextInput
+            style={styles.searchInput}
+            value={inputUrl}
+            onChangeText={setInputUrl}
+            placeholder="输入服务器地址"
+            placeholderTextColor="#4b5563"
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            onSubmitEditing={() => handleConnect()}
+            returnKeyType="go"
+          />
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => handleConnect()}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.actionBtnText}>连接</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.scanBtn}
             onPress={handleScan}
@@ -156,35 +166,11 @@ export default function ConnectScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 地址输入区域 */}
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>服务器地址</Text>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.input}
-              value={inputUrl}
-              onChangeText={setInputUrl}
-              placeholder="192.168.1.5:8080"
-              placeholderTextColor="#4b5563"
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-            />
-            <TouchableOpacity
-              style={styles.connectBtn}
-              onPress={() => handleConnect()}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.connectBtnText}>连接</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* 历史记录 */}
         {history.length > 0 && (
           <View style={styles.historySection}>
             <Text style={styles.historyTitle}>最近连接</Text>
-            {history.slice(0, 3).map((item) => (
+            {history.slice(0, 5).map((item) => (
               <Pressable
                 key={item.url}
                 style={[
@@ -273,84 +259,46 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
 
-  // 顶部栏
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  headerLeft: {
+  // 顶部搜索栏
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 20,
+    overflow: 'hidden',
   },
-  logoEmoji: {
-    fontSize: 36,
-    marginRight: 12,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  searchInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
     color: '#fff',
   },
-  subtitle: {
-    fontSize: 13,
-    color: '#6b7280',
+  actionBtn: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    justifyContent: 'center',
   },
-
-  // 扫码按钮
+  actionBtnText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
   scanBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    width: 48,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
   },
   scanBtnIcon: {
     fontSize: 22,
-  },
-
-  // 地址输入
-  inputSection: {
-    marginBottom: 24,
-  },
-  inputLabel: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginBottom: 8,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#fff',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  connectBtn: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    paddingHorizontal: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  connectBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 
   // 历史记录
